@@ -69,13 +69,19 @@ const DestinationList: React.FC = () => {
       </div>
 
       {/* Destinations Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Destinasi
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Nama
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Deskripsi
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Kategori
@@ -94,35 +100,35 @@ const DestinationList: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredDestinations.map((destination) => (
                 <tr key={destination.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                  <td className="px-6 py-4">
                       <img
                         className="h-12 w-12 rounded-md object-cover"
                         src={destination.imageUrl}
                         alt={destination.title}
                       />
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {destination.title}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {destination.description.substring(0, 60)}...
-                        </div>
-                      </div>
-                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td>
+                     <div className="text-sm font-medium text-gray-900">
+                          {destination.title}
+                      </div>
+                  </td>
+                  <td>
+                    <p className="text-sm text-gray-500 p-4 overflow-hidden text-ellipsis">
+                          {destination.description}
+                    </p>
+                  </td>
+                  <td className="px-6 py-4">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-primary bg-opacity-10 text-primary">
                       {destination.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                     {destination.price}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {destination.openHours}
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {destination.openHours.length > 20 ? `${destination.openHours.substring(0,30)}...` : destination.openHours}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <Link
                         to={`/destinasi/${destination.id}`}

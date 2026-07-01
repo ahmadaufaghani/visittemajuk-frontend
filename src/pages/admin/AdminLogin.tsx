@@ -11,7 +11,7 @@ const AdminLogin: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/admin/destinations" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

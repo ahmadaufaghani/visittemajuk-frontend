@@ -3,13 +3,9 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   MapPin, 
-  Home, 
   Bed, 
   Utensils, 
-  LogOut, 
-  Settings,
-  Plus,
-  Edit
+  LogOut,
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -24,33 +20,24 @@ const AdminLayout: React.FC = () => {
     {
       title: 'Destinasi',
       icon: MapPin,
-      submenu: [
-        { title: 'Tambah Destinasi', path: '/admin/destinations/add', icon: Plus },
-        { title: 'Edit Destinasi', path: '/admin/destinations', icon: Edit }
-      ]
+      path:'/admin/destinations'
     },
     {
       title: 'Akomodasi',
       icon: Bed,
-      submenu: [
-        { title: 'Tambah Akomodasi', path: '/admin/accommodations/add', icon: Plus },
-        { title: 'Edit Akomodasi', path: '/admin/accommodations', icon: Edit }
-      ]
+      path: '/admin/accommodations'
     },
     {
       title: 'Kuliner',
       icon: Utensils,
-      submenu: [
-        { title: 'Tambah Kuliner', path: '/admin/culinary/add', icon: Plus },
-        { title: 'Edit Kuliner', path: '/admin/culinary', icon: Edit }
-      ]
+      path: '/admin/culinary'
     }
   ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+      <div className="w-64 bg-white shadow-lg relative">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center">
             <MapPin className="h-8 w-8 text-primary" />
@@ -64,47 +51,17 @@ const AdminLayout: React.FC = () => {
         <nav className="mt-6">
           {menuItems.map((item, index) => (
             <div key={index}>
-              {item.submenu ? (
-                <div className="px-6 py-3">
-                  <div className="flex items-center text-gray-700 font-medium mb-2">
+                <div className={`px-6 py-3 ${isActive(item.path) ? 'bg-primary text-white' : 'bg-white text-gray-700' }   `}>
+                  <Link to={item.path} className="flex items-center font-medium mb-2">
                     <item.icon className="h-5 w-5 mr-3" />
                     {item.title}
-                  </div>
-                  <div className="ml-8 space-y-1">
-                    {item.submenu.map((subItem, subIndex) => (
-                      <Link
-                        key={subIndex}
-                        to={subItem.path}
-                        className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors duration-200 ${
-                          isActive(subItem.path)
-                            ? 'bg-primary text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        <subItem.icon className="h-4 w-4 mr-2" />
-                        {subItem.title}
-                      </Link>
-                    ))}
-                  </div>
+                  </Link>
                 </div>
-              ) : (
-                <Link
-                  to={item.path}
-                  className={`flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors duration-200 ${
-                    (item.exact ? location.pathname === item.path : isActive(item.path))
-                      ? 'bg-primary text-white hover:bg-primary-dark'
-                      : ''
-                  }`}
-                >
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {item.title}
-                </Link>
-              )}
-            </div>
-          ))}
+              </div>
+             ))}
         </nav>
 
-        <div className="absolute bottom-0 w-64 p-6 border-t border-gray-200">
+        <div className="fixed bottom-0 w-64 p-6 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-800">{user?.username}</p>
@@ -129,7 +86,6 @@ const AdminLayout: React.FC = () => {
               {location.pathname.includes('/destinations') && 'Manajemen Destinasi'}
               {location.pathname.includes('/accommodations') && 'Manajemen Akomodasi'}
               {location.pathname.includes('/culinary') && 'Manajemen Kuliner'}
-              {location.pathname === '/admin' && ''}
             </h2>
           </div>
         </header>
