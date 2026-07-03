@@ -1,16 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { destinations } from '../data/destinations';
+import { getDestination } from '../services/destinationsApi';
+import type { Destination } from '../types/destination';
 import { MapPin, Clock, DollarSign, CornerDownRight, ArrowLeft } from 'lucide-react';
 import Slider from 'react-slick';
 
 const DestinationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [destination, setDestination] = useState(destinations.find((d) => d.id === id));
+  const [destination, setDestination] = useState<Destination | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isActive = true;
+
     window.scrollTo(0, 0);
-    setDestination(destinations.find((d) => d.id === id));
+
+    if (!id) {
+      setDestination(null);
+      setIsLoading(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setDestination(null);
+
+    getDestination(id)
+      .then((loadedDestination) => {
+        if (isActive) {
+          setDestination(loadedDestination);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setDestination(null);
+          setError('Destinasi yang Anda cari tidak ditemukan.');
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [id]);
 
   const sliderSettings = {
@@ -23,13 +61,21 @@ const DestinationDetail: React.FC = () => {
     autoplaySpeed: 5000,
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600 text-lg">Memuat destinasi...</p>
+      </div>
+    );
+  }
+
   if (!destination) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Destinasi tidak ditemukan</h2>
           <p className="text-gray-600 mb-6">
-            Maaf, destinasi yang Anda cari tidak ditemukan.
+            {error ?? 'Maaf, destinasi yang Anda cari tidak ditemukan.'}
           </p>
           <Link
             to="/destinasi"
@@ -128,17 +174,21 @@ const DestinationDetail: React.FC = () => {
             {/* Gallery */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Galeri</h2>
-              <Slider {...sliderSettings} className="gallery-slider mb-6">
-                {destination.gallery.map((image, index) => (
-                  <div key={index} className="p-1">
-                    <img
-                      src={image}
-                      alt={`${destination.title} - Gambar ${index + 1}`}
-                      className="w-full h-64 md:h-96 object-cover rounded-lg"
-                    />
-                  </div>
-                ))}
-              </Slider>
+              {destination.gallery.length > 0 ? (
+                <Slider {...sliderSettings} className="gallery-slider mb-6">
+                  {destination.gallery.map((image, index) => (
+                    <div key={index} className="p-1">
+                      <img
+                        src={image}
+                        alt={`${destination.title} - Gambar ${index + 1}`}
+                        className="w-full h-64 md:h-96 object-cover rounded-lg"
+                      />
+                    </div>
+                  ))}
+                </Slider>
+              ) : (
+                <p className="text-gray-500">Galeri belum tersedia.</p>
+              )}
             </div>
           </div>
 

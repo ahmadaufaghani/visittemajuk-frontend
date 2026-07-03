@@ -5,14 +5,19 @@ import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
 import Testimonial from '../components/Testimonial';
-import { destinations } from '../data/destinations';
+import { useDestinations } from '../hooks/useDestinations';
 import { accommodations } from '../data/accommodations';
 import { photoSpots } from '../data/photoSpots';
 import { reviews } from '../data/reviews';
-import { Map, MapPin, Compass, Utensils, Camera, Star, ChevronRight } from 'lucide-react';
+import { Map, MapPin, Compass, Utensils, Camera, ChevronRight } from 'lucide-react';
 
 const Home: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const {
+    destinations,
+    isLoading: isLoadingDestinations,
+    error: destinationsError,
+  } = useDestinations();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -52,7 +57,6 @@ const Home: React.FC = () => {
   };
 
   const featuredDestinations = destinations.slice(0, 3);
-  const featuredAccommodations = accommodations.slice(0, 3);
   const featuredPhotos = photoSpots.slice(0, 3);
   const featuredReviews = reviews.slice(0, 4);
 
@@ -182,20 +186,34 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredDestinations.map((destination) => (
-              <Card
-                key={destination.id}
-                id={destination.id}
-                title={destination.title}
-                description={destination.description}
-                imageUrl={destination.imageUrl}
-                link="/destinasi"
-                category={destination.category}
-                price={destination.price}
-              />
-            ))}
-          </div>
+          {isLoadingDestinations && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Memuat destinasi...</p>
+            </div>
+          )}
+
+          {!isLoadingDestinations && destinationsError && (
+            <div className="text-center py-8">
+              <p className="text-red-600">{destinationsError}</p>
+            </div>
+          )}
+
+          {!isLoadingDestinations && !destinationsError && featuredDestinations.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredDestinations.map((destination) => (
+                <Card
+                  key={destination.id}
+                  id={destination.id}
+                  title={destination.title}
+                  description={destination.description}
+                  imageUrl={destination.imageUrl}
+                  link="/destinasi"
+                  category={destination.category}
+                  price={destination.price}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
