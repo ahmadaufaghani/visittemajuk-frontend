@@ -1,24 +1,68 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { destinations } from '../../../data/destinations';
-import { Search, Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { useAuth } from '../../../contexts/authContextValue';
+import { useDestinations } from '../../../hooks/useDestinations';
+import { deleteDestination } from '../../../services/destinationsApi';
+import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const DestinationList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-
-  const categories = [...new Set(destinations.map((dest) => dest.category))];
-
-  const filteredDestinations = destinations.filter((destination) => {
-    const matchesSearch = destination.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === '' || destination.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  const [page, setPage] = useState(1);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const { token } = useAuth();
+  const {
+    destinations,
+    meta,
+    isLoading,
+    error,
+    reload,
+  } = useDestinations({
+    admin: true,
+    token,
+    enabled: Boolean(token),
+    params: {
+      search: searchTerm,
+      category: selectedCategory,
+      page,
+      perPage: 10,
+    },
   });
 
-  const handleDelete = (id: string) => {
+  const categories = meta.filters.categories;
+  const pagination = meta.pagination;
+  const canGoToPreviousPage = pagination.current_page > 1;
+  const canGoToNextPage = pagination.current_page < pagination.last_page;
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setPage(1);
+  };
+
+  const handleDelete = async (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus destinasi ini?')) {
-      // In a real app, this would make an API call
-      console.log('Delete destination:', id);
+      if (!token) {
+        setActionError('Sesi admin tidak valid.');
+        return;
+      }
+
+      setActionError(null);
+
+      try {
+        await deleteDestination(id, token);
+        if (destinations.length === 1 && page > 1) {
+          setPage((currentPage) => Math.max(1, currentPage - 1));
+        } else {
+          await reload();
+        }
+      } catch {
+        setActionError('Destinasi belum dapat dihapus.');
+      }
     }
   };
 
@@ -43,10 +87,10 @@ const DestinationList: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Cari destinasi..."
+                placeholder="Cari nama destinasi..."
                 className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
@@ -55,7 +99,7 @@ const DestinationList: React.FC = () => {
             <select
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => handleCategoryChange(e.target.value)}
             >
               <option value="">Semua Kategori</option>
               {categories.map((category) => (
@@ -68,7 +112,20 @@ const DestinationList: React.FC = () => {
         </div>
       </div>
 
+      {(error || actionError) && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-red-700 text-sm">{actionError ?? error}</p>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <p className="text-gray-500">Memuat destinasi...</p>
+        </div>
+      )}
+
       {/* Destinations Table */}
+       {!isLoading && !error && (
        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -98,7 +155,7 @@ const DestinationList: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDestinations.map((destination) => (
+              {destinations.map((destination) => (
                 <tr key={destination.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                       <img
@@ -159,12 +216,47 @@ const DestinationList: React.FC = () => {
           </table>
         </div>
 
-        {filteredDestinations.length === 0 && (
+        {destinations.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-500">Tidak ada destinasi yang ditemukan.</p>
           </div>
         )}
+
+        {pagination.total > 0 && (
+          <div className="border-t border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              Menampilkan {pagination.from ?? 0}-{pagination.to ?? 0} dari {pagination.total} destinasi
+            </p>
+
+            {pagination.last_page > 1 && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                  disabled={!canGoToPreviousPage}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Sebelumnya
+                </button>
+                <span className="min-w-28 text-center text-sm text-gray-700">
+                  Halaman {pagination.current_page} dari {pagination.last_page}
+                </span>
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setPage((currentPage) => currentPage + 1)}
+                  disabled={!canGoToNextPage}
+                >
+                  Berikutnya
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+       )}
     </div>
   );
 };
