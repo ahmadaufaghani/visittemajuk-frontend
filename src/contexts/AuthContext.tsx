@@ -1,64 +1,105 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import {
+  getCurrentUser,
+  loginRequest,
+  logoutRequest,
+  type AuthUser,
+} from '../services/authApi';
+import { AuthContext } from './authContextValue';
+import { ApiError, setUnauthorizedHandler } from '../lib/api';
 
-interface User {
-  id: string;
-  username: string;
-  role: 'admin';
-}
+const USER_STORAGE_KEY = 'admin_user';
+const TOKEN_STORAGE_KEY = 'admin_token';
 
-interface AuthContextType {
-  user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
+const storedUser = (): AuthUser | null => {
+  const savedUser = localStorage.getItem(USER_STORAGE_KEY);
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!savedUser) {
+    return null;
   }
-  return context;
+
+  try {
+    return JSON.parse(savedUser) as AuthUser;
+  } catch {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    return null;
+  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is logged in from localStorage
-    const savedUser = localStorage.getItem('admin_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+  const clearSession = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // Simple authentication - in production, this would be a real API call
-    if (username === 'admin' && password === 'temajuk2024') {
-      const userData: User = {
-        id: '1',
-        username: 'admin',
-        role: 'admin'
-      };
-      setUser(userData);
-      localStorage.setItem('admin_user', JSON.stringify(userData));
-      return true;
+  useEffect(() => setUnauthorizedHandler(clearSession), [clearSession]);
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+    if (!savedToken) {
+      setIsLoading(false);
+      return;
     }
-    return false;
+
+    setToken(savedToken);
+    setUser(storedUser());
+
+    getCurrentUser(savedToken)
+      .then((currentUser) => {
+        setUser(currentUser);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(currentUser));
+      })
+      .catch((saveError: unknown) => {
+        if (saveError instanceof ApiError && saveError.status === 401) {
+          clearSession();
+        }
+      })
+      .finally(() => setIsLoading(false));
+  }, [clearSession]);
+
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const auth = await loginRequest(username, password);
+
+      setUser(auth.user);
+      setToken(auth.token);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(auth.user));
+      localStorage.setItem(TOKEN_STORAGE_KEY, auth.token);
+
+      return true;
+    } catch (loginError: unknown) {
+      if (loginError instanceof ApiError && loginError.status === 401) {
+        return false;
+      }
+
+      throw loginError;
+    }
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('admin_user');
+    const currentToken = token;
+
+    clearSession();
+
+    if (currentToken) {
+      void logoutRequest(currentToken);
+    }
   };
 
   const value = {
     user,
+    token,
     login,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user && !!token,
+    isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -3,7 +3,7 @@ import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Testimonial from '../components/Testimonial';
 import { reviews } from '../data/reviews';
-import { destinations } from '../data/destinations';
+import { useDestinations } from '../hooks/useDestinations';
 import { Search, Send, Star } from 'lucide-react';
 
 const Reviews: React.FC = () => {
@@ -11,8 +11,14 @@ const Reviews: React.FC = () => {
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [formRating, setFormRating] = useState<number>(0);
+  const { destinations, isLoading: isLoadingDestinations } = useDestinations({
+    params: { perPage: 50 },
+    allPages: true,
+  });
 
-  const destinationOptions = [...new Set(reviews.map((review) => review.destination))];
+  const reviewedDestinationOptions = [...new Set(reviews.map((review) => review.destination))];
+  const apiDestinationOptions = destinations.map((destination) => destination.title);
+  const destinationOptions = [...new Set([...reviewedDestinationOptions, ...apiDestinationOptions])];
 
   const filteredReviews = reviews.filter((review) => {
     const matchesSearch = review.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,8 +159,11 @@ const Reviews: React.FC = () => {
                 <select
                   id="destination"
                   className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
+                  disabled={isLoadingDestinations}
                 >
-                  <option value="">Pilih Destinasi</option>
+                  <option value="">
+                    {isLoadingDestinations ? 'Memuat destinasi...' : 'Pilih Destinasi'}
+                  </option>
                   {destinations.map((dest) => (
                     <option key={dest.id} value={dest.title}>
                       {dest.title}

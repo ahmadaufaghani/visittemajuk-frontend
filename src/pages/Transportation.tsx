@@ -2,7 +2,7 @@ import React from 'react';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import { transportationRoutes } from '../data/transportation';
-import { MapPin, Clock, DollarSign, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Clock, DollarSign, AlertTriangle, ChevronDown } from 'lucide-react';
 
 const Transportation: React.FC = () => {
   const [openRoute, setOpenRoute] = React.useState<string | null>(null);

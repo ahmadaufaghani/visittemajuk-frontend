@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/authContextValue';
 import { MapPin, Lock, User, AlertCircle } from 'lucide-react';
+import { ApiError } from '../../lib/api';
 
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center px-4">
+        <p className="text-white">Memuat sesi admin...</p>
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/admin/destinations" replace />;
@@ -17,17 +26,22 @@ const AdminLogin: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const success = await login(username, password);
       if (!success) {
         setError('Username atau password salah');
       }
-    } catch (err) {
-      setError('Terjadi kesalahan saat login');
+    } catch (loginError) {
+      if (loginError instanceof ApiError) {
+        setError(loginError.message);
+        return;
+      }
+
+      setError('Terjadi kesalahan saat login. Silakan coba lagi.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -89,20 +103,15 @@ const AdminLogin: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
+              <button
+                type="submit"
+              disabled={isSubmitting}
               className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Memproses...' : 'Login'}
+              {isSubmitting ? 'Memproses...' : 'Login'}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              Demo credentials: admin / temajuk2024
-            </p>
-          </div>
         </div>
       </div>
     </div>
