@@ -3,7 +3,7 @@ import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
 import { useDestinations } from '../hooks/useDestinations';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Compass } from 'lucide-react';
 
 const Destinations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,8 +107,20 @@ const Destinations: React.FC = () => {
           ) : null}
 
           {!isLoading && !error && destinations.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-gray-500 text-lg">Tidak ada destinasi yang sesuai dengan pencarian Anda.</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+                <Compass className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                {searchTerm || selectedCategory
+                  ? 'Tidak ada destinasi yang sesuai'
+                  : 'Belum ada destinasi wisata yang terdaftar'}
+              </h3>
+              <p className="text-gray-500 text-center max-w-md">
+                {searchTerm || selectedCategory
+                  ? 'Coba ubah kata kunci pencarian atau filter kategori untuk menemukan destinasi lain.'
+                  : 'Destinasi wisata di Temajuk belum tersedia saat ini. Silakan kembali lagi nanti!'}
+              </p>
             </div>
           )}
 

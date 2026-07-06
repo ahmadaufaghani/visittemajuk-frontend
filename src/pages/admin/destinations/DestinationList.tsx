@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/authContextValue';
 import { useDestinations } from '../../../hooks/useDestinations';
 import { deleteDestination } from '../../../services/destinationsApi';
-import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const DestinationList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,12 +56,14 @@ const DestinationList: React.FC = () => {
 
       try {
         await deleteDestination(id, token);
+        toast.success('Destinasi berhasil dihapus.');
         if (destinations.length === 1 && page > 1) {
           setPage((currentPage) => Math.max(1, currentPage - 1));
         } else {
           await reload();
         }
       } catch {
+        toast.error('Gagal menghapus destinasi. Silakan coba lagi.');
         setActionError('Destinasi belum dapat dihapus.');
       }
     }
@@ -189,6 +192,7 @@ const DestinationList: React.FC = () => {
                     <div className="flex justify-end space-x-2">
                       <Link
                         to={`/destinasi/${destination.id}`}
+                        state={{ fromAdmin: true }}
                         className="text-blue-600 hover:text-blue-900 p-1"
                         title="Lihat"
                       >
@@ -217,8 +221,23 @@ const DestinationList: React.FC = () => {
         </div>
 
         {destinations.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">Tidak ada destinasi yang ditemukan.</p>
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <MapPin className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              Data destinasi masih kosong
+            </h3>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+              Belum ada data destinasi wisata yang tersimpan. Mulai tambahkan destinasi pertama Anda sekarang.
+            </p>
+            <Link
+              to="/admin/destinations/add"
+              className="inline-flex items-center bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-md transition-colors duration-200"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Destinasi
+            </Link>
           </div>
         )}
 

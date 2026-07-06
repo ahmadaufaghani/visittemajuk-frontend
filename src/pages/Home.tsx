@@ -214,6 +214,20 @@ const Home: React.FC = () => {
               ))}
             </div>
           )}
+
+          {!isLoadingDestinations && !destinationsError && featuredDestinations.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+                <Compass className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                Belum ada destinasi wisata yang terdaftar
+              </h3>
+              <p className="text-gray-500 text-center max-w-md">
+                Destinasi wisata di Temajuk belum tersedia saat ini. Silakan kembali lagi nanti!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

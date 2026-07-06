@@ -10,6 +10,7 @@ import {
 import { ApiError } from '../../../lib/api';
 import type { DestinationPayload } from '../../../types/destination';
 import { Save, ArrowLeft, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const emptyFormData: DestinationPayload = {
   title: '',
@@ -181,8 +182,10 @@ const DestinationForm: React.FC = () => {
     try {
       if (isEdit && id) {
         await updateDestination(id, destinationPayload(), token);
+        toast.success('Destinasi berhasil diperbarui.');
       } else {
         await createDestination(destinationPayload(), token);
+        toast.success('Destinasi berhasil ditambahkan.');
       }
 
       navigate('/admin/destinations');
@@ -192,11 +195,14 @@ const DestinationForm: React.FC = () => {
           ? Object.values(saveError.errors).flat()[0]
           : undefined;
 
-        setError(firstError ?? saveError.message);
+        const message = firstError ?? saveError.message;
+        setError(message);
+        toast.error(message);
         return;
       }
 
       setError('Destinasi belum dapat disimpan.');
+      toast.error('Gagal menyimpan destinasi. Silakan coba lagi.');
     } finally {
       setIsSaving(false);
     }
