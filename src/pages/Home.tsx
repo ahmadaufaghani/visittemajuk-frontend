@@ -10,9 +10,6 @@ import { accommodations } from '../data/accommodations';
 import { photoSpots } from '../data/photoSpots';
 import { Map, MapPin, Compass, Utensils, Camera, ChevronRight } from 'lucide-react';
 import avatar from '../assets/img/user.png'
-import type {
-  Review
-} from '../types/review';
 import { useReviews } from '../hooks/useReview';
 import dateFormatter from '../utils/dateFormatter';
 
@@ -20,17 +17,6 @@ import dateFormatter from '../utils/dateFormatter';
 const Home: React.FC = () => {
 
   const [isLoaded, setIsLoaded] = useState(false);
-
-  const formatDate = (tanggal: string):string => {
-      const date = new Date(tanggal);
-      const options: Intl.DateTimeFormatOptions = {
-        year:'numeric',
-        month: 'long',
-        day: 'numeric'
-      }
-      const formatter = new Intl.DateTimeFormat('id-ID', options).format(date);
-      return formatter;
-  }
 
   const {
     destinations,
