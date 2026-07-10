@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { Menu, X, MapPin } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const id = location.pathname.split("/")[2];
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -62,7 +63,7 @@ const Navbar: React.FC = () => {
             <Link
               to="/destinasi"
               className={`${
-                isActive('/destinasi') 
+                isActive(id ? `/destinasi/${id}` : '/destinasi')
                   ? 'text-primary font-medium border-b-2 border-primary' 
                   : 'text-gray-700 hover:text-primary'
               } transition-colors duration-200`}
@@ -72,7 +73,7 @@ const Navbar: React.FC = () => {
             <Link
               to="/akomodasi"
               className={`${
-                isActive('/akomodasi') 
+                isActive(id ? `/akomodasi/${id}` : '/akomodasi') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
                   : 'text-gray-700 hover:text-primary'
               } transition-colors duration-200`}
@@ -92,7 +93,7 @@ const Navbar: React.FC = () => {
             <Link
               to="/kuliner"
               className={`${
-                isActive('/kuliner') 
+                isActive(id ? `/kuliner/${id}` : '/kuliner') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
                   : 'text-gray-700 hover:text-primary'
               } transition-colors duration-200`}
@@ -152,7 +153,7 @@ const Navbar: React.FC = () => {
               <Link
                 to="/destinasi"
                 className={`${
-                  isActive('/destinasi') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
+                  isActive(id ? `/destinasi/${id}` : '/destinasi')  ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
                 onClick={toggleMenu}
               >
@@ -161,7 +162,7 @@ const Navbar: React.FC = () => {
               <Link
                 to="/akomodasi"
                 className={`${
-                  isActive('/akomodasi') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
+                  isActive(id ? `/akomodasi/${id}` : '/akomodasi')  ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
                 onClick={toggleMenu}
               >
@@ -179,7 +180,7 @@ const Navbar: React.FC = () => {
               <Link
                 to="/kuliner"
                 className={`${
-                  isActive('/kuliner') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
+                  isActive(id ? `/kuliner/${id}` : '/kuliner') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
                 onClick={toggleMenu}
               >
@@ -188,7 +189,7 @@ const Navbar: React.FC = () => {
               <Link
                 to="/foto"
                 className={`${
-                  isActive('/foto') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
+                  isActive(id ? `/foto/${id}` : '/foto') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
                 onClick={toggleMenu}
               >
