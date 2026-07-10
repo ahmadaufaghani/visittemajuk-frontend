@@ -1,52 +1,36 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Edit, Trash2, Plus, Eye, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../../contexts/authContextValue';
-import { PuffLoader } from "react-spinners";
-import { useCulinaries } from '../../../hooks/useCulinaries';
-import { deleteCulinary } from '../../../services/culinariesApi';
+import { culinary } from '../../../data/culinary';
+import { Search, Edit, Trash2, Plus, Eye } from 'lucide-react';
 
 const CulinaryList: React.FC = () => {
-  const [selectedRow, setSelectedRow] = useState<number>(0);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [page, setPage] = useState<number>(1);
-  const user = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
 
-  const {culinaries, isLoading: isLoadingCulinary, error, reload, meta} = useCulinaries({params:{
-    search : searchTerm,
-    category: selectedCategory,
-    page,
-    perPage: 5
-  }});
+  const categories = [...new Set(culinary.map((item) => item.category))];
 
-  const handleDelete = async (id: number) => {
-    try {
-      if (window.confirm('Apakah Anda yakin ingin menghapus tempat kuliner ini?')) {
-        await deleteCulinary(id,user.token as string);
-        reload();
-      }
-    } catch (err) {
-      console.log(err);
+  const filteredCulinary = culinary.filter((item) => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === '' || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus tempat kuliner ini?')) {
+      console.log('Delete culinary:', id);
     }
   };
-
-  const pagination = meta.pagination;
-  const canGoToPreviousPage = pagination.current_page > 1;
-  const canGoToNextPage = pagination.current_page < pagination.last_page;
-
-  const categories = [...new Set(meta.filters.categories.map(val => val))];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-4 sm:flex sm:justify-between sm:items-center">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Manajemen Kuliner</h1>
         <Link
           to="/admin/culinary/add"
-          className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
+          className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex items-center transition-colors duration-200"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-2" />
           Tambah Kuliner
         </Link>
       </div>
@@ -95,10 +79,10 @@ const CulinaryList: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Kategori
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Harga
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Jam Buka
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -107,46 +91,37 @@ const CulinaryList: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {!isLoadingCulinary ? culinaries.map((item) => (
-              <Fragment key={`${item.id}-fragment`}>
+              {filteredCulinary.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
                         className="h-12 w-12 rounded-md object-cover"
-                        src={`http://127.0.0.1:8000/storage/${item.image}`}
+                        src={item.imageUrl}
                         alt={item.title}
                       />
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
                           {item.title}
                         </div>
-                        <div className="text-sm text-gray-500 hidden md:table-cell">
+                        <div className="text-sm text-gray-500">
                           {item.description.substring(0, 60)}...
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                       {item.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 hidden md:table-cell">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {item.price}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 hidden md:table-cell">
-                    {item.open_hours}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {item.openHours}
                   </td>
-                  <td className="text-center md:hidden">
-                    <button
-                    onClick={()=>setSelectedRow((prev) => prev === item.id ? 0 : item.id)}
-                    className="bg-primary hover:bg-primary-dark text-white p-1 rounded-full transition-colors duration-200"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium hidden md:table-cell">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <Link
                         to={`/kuliner/${item.id}`}
@@ -172,116 +147,16 @@ const CulinaryList: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-                <tr className={`${selectedRow === item.id ? "" : "hidden"} md:hidden`}>
-                  <td colSpan={3} className="p-0">
-                    <table>
-                      <tbody className="divide-y">
-                        <tr className="divide-x">
-                          <td className="align-top pr-4 font-semibold pl-2">Deskripsi</td>
-                          <td className="p-1">{item.description}</td>
-                        </tr>
-                        <tr className="divide-x">
-                          <td className="align-top pr-4 font-semibold pl-2">Harga</td>
-                          <td className="p-1">{item.price}</td>
-                        </tr>
-                        <tr className="divide-x">
-                          <td className="align-top pr-4 font-semibold pl-2">Jam Buka</td>
-                          <td className="p-1">{item.open_hours}</td>
-                        </tr>
-                        <tr className="divide-x">
-                          <td className="align-top pr-4 font-semibold pl-2">Aksi</td>
-                          <td className="p-1">
-                            <div className="flex justify-start gap-1">
-                              <Link
-                                to={`/kuliner/${item.id}`}
-                                className="text-blue-600 hover:text-blue-900 p-1"
-                                title="Lihat"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Link>
-                              <Link
-                                to={`/admin/culinary/edit/${item.id}`}
-                                className="text-indigo-600 hover:text-indigo-900 p-1"
-                                title="Edit"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Link>
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                className="text-red-600 hover:text-red-900 p-1"
-                                title="Hapus"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </td>
-                </tr>
-              </Fragment>
-              )):
-             <></>
-              }
+              ))}
             </tbody>
           </table>
-        </div> 
+        </div>
 
-        {!isLoadingCulinary && !error && pagination.total > 0 && (
-          <div className="border-t py-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-600">
-              Menampilkan {pagination.from ?? 0}-{pagination.to ?? 0} dari {pagination.total} kuliner
-            </p>
-
-            {pagination.last_page > 1 && (
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
-                  disabled={!canGoToPreviousPage}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:block">Sebelumnya</span>
-                </button>
-                <span className="min-w-28 text-center text-sm text-gray-700">
-                  Halaman {pagination.current_page} dari {pagination.last_page}
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPage((currentPage) => currentPage + 1)}
-                  disabled={!canGoToNextPage}
-                >
-                  <span className="hidden sm:block">Berikutnya</span>
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {isLoadingCulinary ? <div className=" flex flex-col items-center py-8">
-            <PuffLoader
-              color={"#4B5563"}
-              loading={isLoadingCulinary}
-              size={40}
-              className="mb-6"
-            />
-            <p className="text-gray-500">Memuat data kuliner...</p>
-          </div>
-          :
-          <></>
-        }
-
-        {!isLoadingCulinary && culinaries.length === 0 && (
+        {filteredCulinary.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-500">Tidak ada tempat kuliner yang ditemukan.</p>
           </div>
         )}
-
-
       </div>
     </div>
   );
