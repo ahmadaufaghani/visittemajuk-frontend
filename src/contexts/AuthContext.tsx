@@ -81,7 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       throw loginError;
     }
-    return false;
   };
 
   const logout = () => {
