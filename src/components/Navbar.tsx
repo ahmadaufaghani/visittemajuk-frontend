@@ -7,7 +7,6 @@ const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const id = location.pathname.split("/")[2];
-  console.log(id);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
