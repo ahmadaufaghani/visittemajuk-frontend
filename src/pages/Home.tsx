@@ -16,10 +16,14 @@ import type {
 import { useReviews } from '../hooks/useReview';
 import dateFormatter from '../utils/dateFormatter';
 
-
 const Home: React.FC = () => {
 
   const [isLoaded, setIsLoaded] = useState(false);
+  const {
+    destinations,
+    isLoading: isLoadingDestinations,
+    error: destinationsError,
+  } = useDestinations();
 
   const formatDate = (tanggal: string):string => {
       const date = new Date(tanggal);
