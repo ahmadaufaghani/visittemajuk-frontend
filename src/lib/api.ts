@@ -51,11 +51,12 @@ export async function apiRequest<T, M = unknown>(
   const isFormData = options.body instanceof FormData;
 
   if(!isFormData) {
-      headers['Accept'] = 'application/json';
-      
-      if (options.body !== undefined) {
-        headers['Content-Type'] = 'application/json';
-      }
+    headers['Accept'] = 'application/json';
+    
+    if (options.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+  }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? 'GET',

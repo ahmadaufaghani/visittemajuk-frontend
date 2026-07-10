@@ -23,12 +23,6 @@ const Home: React.FC = () => {
   } = useDestinations();
 
   const {
-    destinations,
-    isLoading: isLoadingDestinations,
-    error: destinationsError,
-  } = useDestinations();
-
-  const {
     reviews,
     isLoading: isLoadingReviews,
     error: reviewsError,
