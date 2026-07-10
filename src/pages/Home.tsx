@@ -8,16 +8,26 @@ import Testimonial from '../components/Testimonial';
 import { useDestinations } from '../hooks/useDestinations';
 import { accommodations } from '../data/accommodations';
 import { photoSpots } from '../data/photoSpots';
-import { reviews } from '../data/reviews';
 import { Map, MapPin, Compass, Utensils, Camera, ChevronRight } from 'lucide-react';
+import avatar from '../assets/img/user.png'
+import { useReviews } from '../hooks/useReview';
+import dateFormatter from '../utils/dateFormatter';
 
 const Home: React.FC = () => {
+
   const [isLoaded, setIsLoaded] = useState(false);
   const {
     destinations,
     isLoading: isLoadingDestinations,
     error: destinationsError,
   } = useDestinations();
+
+  const {
+    reviews,
+    isLoading: isLoadingReviews,
+    error: reviewsError,
+  } = useReviews();
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -58,7 +68,7 @@ const Home: React.FC = () => {
 
   const featuredDestinations = destinations.slice(0, 3);
   const featuredPhotos = photoSpots.slice(0, 3);
-  const featuredReviews = reviews.slice(0, 4);
+  const featuredReviews = reviews?.slice(0, 4);
 
   return (
     <div className="min-h-screen">
@@ -348,19 +358,49 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
-          <Slider {...testimonialSettings} className="testimonial-slider">
-            {featuredReviews.map((review) => (
-              <div key={review.id} className="px-2">
+          {isLoadingReviews && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Memuat review...</p>
+            </div>
+          )}
+
+          {!isLoadingReviews && reviewsError && (
+            <div className="text-center py-8">
+              <p className="text-red-600">{reviewsError}</p>
+            </div>
+          )}
+
+          {!isLoadingReviews && !reviewsError && featuredReviews.length > 0 ?
+          <Slider {...testimonialSettings} infinite={( featuredReviews && featuredReviews?.length > 1) ?? undefined} className="testimonial-slider">
+            {featuredReviews?.map((review) => (
+              <div key={review.id+"-div"} className="px-2 my-6">
                 <Testimonial
+                  key={review.id+"-item"}
                   name={review.name}
-                  date={review.date}
+                  date={dateFormatter(review.created_at)}
                   rating={review.rating}
                   text={review.text}
-                  imageUrl={review.imageUrl}
+                  imageUrl={avatar}
                 />
               </div>
-            ))}
+              ))}
           </Slider>
+          :
+          <></>
+          }
+           {!isLoadingReviews && !reviewsError && featuredReviews.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+                <Compass className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                Tidak ada data review
+              </h3>
+              <p className="text-gray-500 text-center max-w-md">
+                Review wisata di Temajuk belum tersedia saat ini. Silakan kembali lagi nanti!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

@@ -46,16 +46,16 @@ export async function apiRequest<T, M = unknown>(
   path: string,
   options: ApiRequestOptions = {}
 ): Promise<ApiEnvelope<T, M>> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-  };
+  const headers: Record<string, string> = {};
 
-  if (options.body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-  }
+  const isFormData = options.body instanceof FormData;
 
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`;
+  if(!isFormData) {
+    headers['Accept'] = 'application/json';
+    
+    if (options.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
   }
   
   if (options.token) {
@@ -65,7 +65,13 @@ export async function apiRequest<T, M = unknown>(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? 'GET',
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? 
+      undefined 
+          : 
+      (isFormData ? 
+      options.body as FormData 
+          : 
+      JSON.stringify(options.body)),
   });
 
   const payload = (await response.json()) as ApiEnvelope<T, M>;

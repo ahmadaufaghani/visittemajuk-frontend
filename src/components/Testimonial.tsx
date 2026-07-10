@@ -17,7 +17,7 @@ const Testimonial: React.FC<TestimonialProps> = ({
   imageUrl,
 }) => {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+    <div className="bg-white p-6 h-auto sm:h-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
       <div className="flex items-center mb-4">
         <img
           src={imageUrl}

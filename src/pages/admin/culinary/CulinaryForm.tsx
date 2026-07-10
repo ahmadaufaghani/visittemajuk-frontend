@@ -1,338 +1,548 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { culinary } from '../../../data/culinary';
 import { Save, ArrowLeft, Plus, X } from 'lucide-react';
+import { useAuth } from '../../../contexts/authContextValue';
+import type {
+  Specialty,
+  Gallery,
+  Culinary,
+} from '../../../types/culinary';
+import { ApiError } from '../../../lib/api';
+import { createCulinary, createGallery, createSpeciality, deleteGallery, deleteSpeciality, getCulinary, updateCulinary } from '../../../services/culinariesApi';
+import { PuffLoader } from 'react-spinners';
 
 const CulinaryForm: React.FC = () => {
+
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
-  
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    fullDescription: '',
-    imageUrl: '',
-    category: '',
-    price: '',
-    location: '',
-    openHours: '',
-    contact: '',
-    specialties: [''],
-    gallery: ['']
-  });
+  const user = useAuth();
+  const [idCulinary, setIdCulinary] = useState<number>(0);
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [fullDescription, setFullDescription] = useState<string>("");
+  const [image, setImage] = useState<File| string | null>(null);
+  const [category, setCategory] = useState<string>("");
+  const [price, setPrice] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [locationMap, setLocationMap] = useState<string>("");
+  const [openHours, setOpenHours] = useState<string>("");
+  const [contact, setContact] = useState<string>("");
+  const [specialties, setSpecialities] = useState<string[]>([]);
+  const [galleries, setGalleries] = useState<File[]>([]);
+  const [specialtiesUpdate, setSpecialitiesUpdate] = useState<Specialty[]>([]);
+  const [galleriesUpdate, setGalleriesUpdate] = useState<Gallery[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [preview, setPreview] = useState<string | undefined>(undefined);
+  const categories = ['Seafood', 'Indonesia', 'Kafe', 'Lokal', 'Tradisional'];
+
+
+  const showCulinary = async (id: number) => {
+      setIsLoading(true);
+      getCulinary(id).then(res => {
+        setIdCulinary(res.id);
+        setTitle(res.title);
+        setDescription(res.description);
+        setFullDescription(res.full_description);
+        setImage(res.image);
+        setCategory(res.category);
+        setPrice(res.price);
+        setLocation(res.location);
+        setLocationMap(res.location_map);
+        setOpenHours(res.open_hours);
+        setContact(res.contact || '');
+        setSpecialitiesUpdate(res.specialties);
+        setGalleriesUpdate(res.culinary_galleries);
+        setIsLoading(false);
+      }).catch(err => {
+        console.log(err);
+      })
+  }
 
   useEffect(() => {
     if (isEdit && id) {
-      const culinaryItem = culinary.find(c => c.id === id);
-      if (culinaryItem) {
-        setFormData({
-          title: culinaryItem.title,
-          description: culinaryItem.description,
-          fullDescription: culinaryItem.fullDescription,
-          imageUrl: culinaryItem.imageUrl,
-          category: culinaryItem.category,
-          price: culinaryItem.price,
-          location: culinaryItem.location,
-          openHours: culinaryItem.openHours,
-          contact: culinaryItem.contact || '',
-          specialties: culinaryItem.specialties,
-          gallery: culinaryItem.gallery
-        });
-      }
+      showCulinary(Number(id));
     }
   }, [isEdit, id]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const addCulinaryData = async () => {
+      const formBody = new FormData();
+      formBody.append("title",title);
+      formBody.append("description",description);
+      formBody.append("full_description",fullDescription);
+      formBody.append("image",image!);
+      formBody.append("category",category);
+      formBody.append("price",price);
+      formBody.append("location",location);
+      formBody.append("location_map",locationMap);
+      formBody.append("open_hours",openHours);
+      formBody.append("contact",contact);
+
+      createCulinary(formBody,user.token as string)
+      .then((res: Culinary ) => {
+        addSpecialtiesData(res.id);
+        addGalleriesData(res.id);
+      })
+      .catch(err => {
+        if(err instanceof ApiError) {
+          console.log(err.errors);
+        }
+      });
+
+  }
+
+  const addSpecialtiesData = (id: number) => {
+      specialties.map(async (val) => {
+        createSpeciality({menu: val, culinary_id: id}, user.token as string)
+        .catch(err => {
+          console.log(err);
+        })
+      });
+  }
+
+  const addGalleriesData = (id: number) => {
+      galleries.map(async (val) => {
+        const formGallery = new FormData();
+        formGallery.append("image",val);
+        formGallery.append("culinary_id",String(id));
+        createGallery(formGallery, user.token as string)
+        .catch(err => {
+          console.log(err);
+        })
+      });
+
+  }
+
+  const updateCulinaryData = async (id : number) => {
+    const formBody = new FormData();
+    formBody.append("title",title);
+    formBody.append("description",description);
+    formBody.append("full_description",fullDescription);
+    formBody.append("image",image!);
+    formBody.append("category",category);
+    formBody.append("price",price);
+    formBody.append("location",location);
+    formBody.append("location_map",locationMap);
+    formBody.append("open_hours",openHours);
+    formBody.append("contact",contact);
+
+    updateCulinary(id, formBody, user.token as string)
+    .then(() => {
+      addSpecialtiesData(idCulinary);
+      addGalleriesData(idCulinary);
+      })
+    .catch(err => {
+      console.log(err);
+    });
+  }
+
+  const addArrayItemSpecialties = () => {
+    setSpecialities(prev => [...prev, '']);
+  }
+
+  const addArrayItemGalleries = () => {
+    setGalleries(prev => [...prev, {} as File]);
+  }
+
+  const handleArrayChangeSpecialties = (index: number, value: string) => {
+    setSpecialities(specialties.map((item, i) => i === index ? value : item));
   };
 
-  const handleArrayChange = (field: 'specialties' | 'gallery', index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
-    }));
+  const handleArrayChangeGallery = (index: number, value: File) => {
+    setGalleries(galleries.map((item, i) => i === index ? value : item));
   };
 
-  const addArrayItem = (field: 'specialties' | 'gallery') => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }));
-  };
-
-  const removeArrayItem = (field: 'specialties' | 'gallery', index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }));
-  };
+  const removeArrayItemSpecialties = (index: number) => {
+    setSpecialities(specialties.filter((_, i) => i != index));
+  }
+  const removeArrayItemGalleries = (index: number) => {
+    setGalleries(galleries.filter((_, i) => i != index));
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Save culinary:', formData);
-    navigate('/admin/culinary');
+    if(id) {
+      updateCulinaryData(Number(id));    
+      navigate('/admin/culinary', {replace : true});
+    } else {
+      addCulinaryData();
+      navigate('/admin/culinary', {replace : true});
+    }
   };
 
-  const categories = ['Seafood', 'Indonesia', 'Kafe', 'Lokal', 'Tradisional'];
+  useEffect(()=>{
+    return () => {
+      if(preview) {
+        URL.revokeObjectURL(preview);
+      }
+    }
+  },[preview]);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={() => navigate('/admin/culinary')}
-            className="mr-4 p-2 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">
-            {isEdit ? 'Edit Kuliner' : 'Tambah Kuliner'}
-          </h1>
-        </div>
-      </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Informasi Dasar</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Tempat *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori *
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              >
-                <option value="">Pilih Kategori</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kisaran Harga *
-              </label>
-              <input
-                type="text"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                placeholder="Rp 25.000 - Rp 100.000"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Jam Buka *
-              </label>
-              <input
-                type="text"
-                name="openHours"
-                value={formData.openHours}
-                onChange={handleInputChange}
-                placeholder="11.00 - 21.00 WIB"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nomor Telepon (Opsional)
-              </label>
-              <input
-                type="text"
-                name="contact"
-                value={formData.contact}
-                onChange={handleInputChange}
-                placeholder="+62 8123 4567 890"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alamat *
-            </label>
-            <textarea
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL Gambar Utama *
-            </label>
-            <input
-              type="url"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Singkat *
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Lengkap *
-            </label>
-            <textarea
-              name="fullDescription"
-              value={formData.fullDescription}
-              onChange={handleInputChange}
-              rows={5}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Menu Specialties */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Menu Spesial</h2>
+      {
+        !isLoading ?
+        <>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <button
-              type="button"
-              onClick={() => addArrayItem('specialties')}
-              className="text-primary hover:text-primary-dark flex items-center"
+              onClick={() => navigate('/admin/culinary')}
+              className="mr-4 p-2 text-gray-600 hover:text-gray-800"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Tambah
+              <ArrowLeft className="h-5 w-5" />
             </button>
+            <h1 className="text-lg md:text-2xl font-bold text-gray-800">
+              {isEdit ? 'Edit Kuliner' : 'Tambah Kuliner'}
+            </h1>
           </div>
-          
-          <div className="space-y-3">
-            {formData.specialties.map((specialty, index) => (
-              <div key={index} className="flex items-center space-x-2">
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Informasi Dasar</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Tempat *
+                </label>
                 <input
+
                   type="text"
-                  value={specialty}
-                  onChange={(e) => handleArrayChange('specialties', index, e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  name="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kategori *
+                </label>
+                <select
+
+                  name="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  required
+                >
+                  <option value="">Pilih Kategori</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kisaran Harga *
+                </label>
+                <input
+
+                  type="text"
+                  name="price"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Rp 25.000 - Rp 100.000"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Jam Buka *
+                </label>
+                <input
+
+                  type="text"
+                  name="openHours"
+                  value={openHours}
+                  onChange={(e) => setOpenHours(e.target.value)}
+                  placeholder="11.00 - 21.00 WIB"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nomor Telepon (Opsional)
+                </label>
+                <input
+
+                  type="text"
+                  name="contact"
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  placeholder="+62 8123 4567 890"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Alamat *
+              </label>
+              <textarea
+                name="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Url Lokasi Map *
+              </label>
+              <textarea
+                name="location"
+                value={locationMap}
+                onChange={(e) => setLocationMap(e.target.value)}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gambar Utama *
+              </label>
+              {preview || id && image ? 
+                <img
+                  src={preview ? preview : `http://127.0.0.1:8000/storage/${image}`}
+                  className='mb-4 w-64'
+                />
+                :
+                <></>
+              }
+              <input
+                type="file"
+                name="image"
+                onChange={(e) => {
+
+                  const target = e.target as HTMLInputElement & {
+                    files : FileList;
+                  }
+                  setImage(target.files[0]);
+                  const objectUrl = URL.createObjectURL(target.files[0]);
+                  setPreview(objectUrl);
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                required={image ? false : true}
+              />
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi Singkat *
+              </label>
+              <textarea
+                name="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deskripsi Lengkap *
+              </label>
+              <textarea
+                name="fullDescription"
+                value={fullDescription}
+                onChange={(e) => setFullDescription(e.target.value)}
+                rows={5}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Menu Specialties */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Menu Spesial</h2>
+              <button
+                type="button"
+                onClick={() => addArrayItemSpecialties()}
+                className="text-primary hover:text-primary-dark flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Tambah
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+            {
+              id && specialtiesUpdate.map((item, index) => {
+              return (
+              <div key={index} className="flex items-center space-x-2 ">
+                <input
+                  disabled
+                  type="text"
+                  value={item.menu}
+                  onChange={(e) => handleArrayChangeSpecialties(index,e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md cursor-not-allowed"
                   placeholder="Nama menu spesial"
                 />
-                {formData.specialties.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('specialties', index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            ))}
+                <button
+                      key={`button-speciality-${index}`}
+                      type="button"
+                      onClick={() => {
+                        setIsLoading(true);
+                        deleteSpeciality(item.id,user.token as string)
+                        .then(() => {
+                          showCulinary(Number(id));
+                        }).catch(err => {
+                          console.log(err);
+                        });
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+              </div>)
+              }) 
+            }
+            {id && specialties.length >= 1 && <p className="font-semibold text-md pt-4">Tambah Menu Baru</p>}
+            {
+              specialties.map((specialty, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={specialty}
+                    onChange={(e) => handleArrayChangeSpecialties(index, e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Nama menu spesial"
+                  />
+                  {specialties.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItemSpecialties(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))
+            }
+            </div>
           </div>
-        </div>
 
-        {/* Gallery */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Galeri</h2>
+          {/* Gallery */}
+          {
+            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Galeri</h2>
+              <button
+                type="button"
+                onClick={() => addArrayItemGalleries()}
+                className="text-primary hover:text-primary-dark flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Tambah
+              </button>
+            </div>
+
+            {id && galleriesUpdate.map((item,index) => {
+            return (
+                  <div key={index} className="flex items-center justify-between gap-5 border border-1 border-gray-300 rounded-md mb-4 p-3">
+                    <div className="flex gap-4 items-center">
+                      <img src={`http://127.0.0.1:8000/storage/${item.image}`} className="h-16 w-16 object-cover" alt="" />
+                      <span className='font-semibold'>{`Galeri ${index+1}`}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLoading(true);
+                        deleteGallery(item.id,user.token as string)
+                        .then(() => {
+                          showCulinary(Number(id));
+                        }).catch(err => {
+                          console.log(err);
+                        });
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )
+            })}
+            {id && galleries.length >= 1 && <p className="font-semibold text-md pt-4 mb-3">Tambah Galeri Baru</p>}
+            <div className="space-y-3">
+              {galleries.map((_, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      const target = e.target as HTMLInputElement & {
+                        files : FileList;
+                      }
+                      handleArrayChangeGallery(index, target.files[0]);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent w-full"
+                  />
+                  {galleries.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItemGalleries(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>}
+
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4">
             <button
               type="button"
-              onClick={() => addArrayItem('gallery')}
-              className="text-primary hover:text-primary-dark flex items-center"
+              onClick={() => navigate('/admin/culinary')}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Tambah
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isEdit ? 'Update' : 'Simpan'}
             </button>
           </div>
-          
-          <div className="space-y-3">
-            {formData.gallery.map((image, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <input
-                  type="url"
-                  value={image}
-                  onChange={(e) => handleArrayChange('gallery', index, e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="URL gambar"
-                />
-                {formData.gallery.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeArrayItem('gallery', index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+          </form>
+        </>
+        :
+        <div className="min-h-screen flex flex-col items-center justify-center">
+           <PuffLoader
+              color={"#4B5563"}
+              loading={isLoading}
+              size={40}
+              className="mb-6"
+            />
+          <p className="text-gray-600 text-lg">Memuat data kuliner...</p>
         </div>
-
-        {/* Submit Button */}
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate('/admin/culinary')}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
-          >
-            Batal
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isEdit ? 'Update' : 'Simpan'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
+      }
+      {/* Header */}
+  </div>)
+}
 
 export default CulinaryForm;
