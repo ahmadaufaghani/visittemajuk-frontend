@@ -60,7 +60,7 @@ const AdminLayout: React.FC = () => {
           {menuItems.map((item, index) => (
             <div key={index}>
                 <div className={`px-6 py-3 ${isActive(item.path) ? 'bg-primary text-white' : 'bg-white text-gray-700' }   `}>
-                  <Link to={item.path} className="flex items-center font-medium mb-2">
+                  <Link onClick={()=>setShowSidebarMobile(false)} to={item.path} className="flex items-center font-medium mb-2">
                     <item.icon className="h-5 w-5 mr-3" />
                     {item.title}
                   </Link>
