@@ -1,32 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { destinations } from '../../../data/destinations';
+import { useAuth } from '../../../contexts/authContextValue';
+import {
+  createDestination,
+  getDestination,
+  getDestinations,
+  updateDestination,
+} from '../../../services/destinationsApi';
+import { ApiError } from '../../../lib/api';
+import type { DestinationPayload } from '../../../types/destination';
 import { Save, ArrowLeft, Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+const emptyFormData: DestinationPayload = {
+  title: '',
+  description: '',
+  fullDescription: '',
+  imageUrl: '',
+  category: '',
+  price: '',
+  location: '',
+  openHours: '',
+  facilities: [''],
+  activities: [''],
+  tips: [''],
+  gallery: ['']
+};
+
+const fallbackCategoryOptions = ['Pantai', 'Monumen', 'Alam', 'Teluk', 'Air Terjun'];
+
+const cleanItems = (items: string[]) => items.map((item) => item.trim()).filter(Boolean);
+
+const clearCustomValidity = (
+  event: React.FormEvent<HTMLInputElement>
+) => event.currentTarget.setCustomValidity('');
 
 const DestinationForm: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(isEdit);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasLoadedDestination, setHasLoadedDestination] = useState(!isEdit);
+  const [categories, setCategories] = useState<string[]>([]);
   
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    fullDescription: '',
-    imageUrl: '',
-    category: '',
-    price: '',
-    location: '',
-    openHours: '',
-    facilities: [''],
-    activities: [''],
-    tips: [''],
-    gallery: ['']
-  });
+  const [formData, setFormData] = useState<DestinationPayload>(emptyFormData);
 
   useEffect(() => {
-    if (isEdit && id) {
-      const destination = destinations.find(d => d.id === id);
-      if (destination) {
+    let isActive = true;
+
+    getDestinations({ perPage: 1 })
+      .then((result) => {
+        if (isActive) {
+          setCategories(result.meta.filters.categories);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setCategories([]);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!isEdit || !id) {
+      setIsLoading(false);
+      setFormData(emptyFormData);
+      setLoadError(null);
+      setHasLoadedDestination(true);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setLoadError(null);
+    setHasLoadedDestination(false);
+    setFormData(emptyFormData);
+
+    getDestination(id)
+      .then((destination) => {
+        if (!isActive) {
+          return;
+        }
+
         setFormData({
           title: destination.title,
           description: destination.description,
@@ -41,8 +108,22 @@ const DestinationForm: React.FC = () => {
           tips: destination.tips,
           gallery: destination.gallery
         });
-      }
-    }
+        setHasLoadedDestination(true);
+      })
+      .catch(() => {
+        if (isActive) {
+          setLoadError('Destinasi belum dapat dimuat. Silakan kembali ke daftar destinasi dan coba lagi.');
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [isEdit, id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -74,14 +155,64 @@ const DestinationForm: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const destinationPayload = (): DestinationPayload => ({
+    ...formData,
+    facilities: cleanItems(formData.facilities),
+    activities: cleanItems(formData.activities),
+    tips: cleanItems(formData.tips),
+    gallery: cleanItems(formData.gallery)
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would make an API call
-    console.log('Save destination:', formData);
-    navigate('/admin/destinations');
+
+    if (!token) {
+      setError('Sesi admin tidak valid.');
+      return;
+    }
+
+    if (isEdit && !hasLoadedDestination) {
+      setLoadError('Data awal destinasi belum berhasil dimuat. Update dibatalkan agar data tidak tertimpa.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      if (isEdit && id) {
+        await updateDestination(id, destinationPayload(), token);
+        toast.success('Destinasi berhasil diperbarui.');
+      } else {
+        await createDestination(destinationPayload(), token);
+        toast.success('Destinasi berhasil ditambahkan.');
+      }
+
+      navigate('/admin/destinations');
+    } catch (saveError) {
+      if (saveError instanceof ApiError) {
+        const firstError = saveError.errors
+          ? Object.values(saveError.errors).flat()[0]
+          : undefined;
+
+        const message = firstError ?? saveError.message;
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      setError('Destinasi belum dapat disimpan.');
+      toast.error('Gagal menyimpan destinasi. Silakan coba lagi.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const categories = ['Pantai', 'Monumen', 'Alam', 'Teluk', 'Air Terjun'];
+  const categoryOptions = [...new Set([...fallbackCategoryOptions, ...categories])];
+
+  if (formData.category && !categoryOptions.includes(formData.category)) {
+    categoryOptions.push(formData.category);
+  }
 
   return (
     <div className="space-y-6">
@@ -101,6 +232,29 @@ const DestinationForm: React.FC = () => {
       </div>
 
       {/* Form */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <p className="text-gray-500">Memuat destinasi...</p>
+        </div>
+      ) : isEdit && loadError ? (
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <p className="text-red-700 mb-4">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/destinations')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Kembali ke Daftar Destinasi
+          </button>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Informasi Dasar</h2>
@@ -132,7 +286,7 @@ const DestinationForm: React.FC = () => {
                 required
               >
                 <option value="">Pilih Kategori</option>
-                {categories.map(cat => (
+                {categoryOptions.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -192,6 +346,8 @@ const DestinationForm: React.FC = () => {
               name="imageUrl"
               value={formData.imageUrl}
               onChange={handleInputChange}
+              onInput={clearCustomValidity}
+              onInvalid={(event) => event.currentTarget.setCustomValidity('Masukkan URL gambar utama yang valid.')}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
               required
             />
@@ -361,6 +517,8 @@ const DestinationForm: React.FC = () => {
                   type="url"
                   value={image}
                   onChange={(e) => handleArrayChange('gallery', index, e.target.value)}
+                  onInput={clearCustomValidity}
+                  onInvalid={(event) => event.currentTarget.setCustomValidity('Masukkan URL gambar galeri yang valid.')}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="URL gambar"
                 />
@@ -389,13 +547,15 @@ const DestinationForm: React.FC = () => {
           </button>
           <button
             type="submit"
+            disabled={isSaving}
             className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200"
           >
             <Save className="h-4 w-4 mr-2" />
-            {isEdit ? 'Update' : 'Simpan'}
+            {isSaving ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 };
