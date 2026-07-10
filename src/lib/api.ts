@@ -57,6 +57,10 @@ export async function apiRequest<T, M = unknown>(
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
+  
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? 'GET',
