@@ -2,32 +2,40 @@ import React, { useState } from 'react';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
-import { accommodations } from '../data/accommodations';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { useAccommodations } from '../hooks/useAccommodations';
+import { ChevronLeft, ChevronRight, Search, Hotel } from 'lucide-react';
 
 const Accommodations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceRange, setPriceRange] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-
-  const categories = [...new Set(accommodations.map((acc) => acc.category))];
-
-  const filteredAccommodations = accommodations.filter((accommodation) => {
-    const matchesSearch = accommodation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      accommodation.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === '' || accommodation.category === selectedCategory;
-    
-    let matchesPrice = true;
-    if (priceRange !== '') {
-      const [min, max] = priceRange.split('-').map(Number);
-      const price = parseInt(accommodation.price.split(' - ')[0].replace(/\D/g, ''));
-      matchesPrice = price >= min && (max ? price <= max : true);
-    }
-    
-    return matchesSearch && matchesCategory && matchesPrice;
+  const [page, setPage] = useState(1);
+  const { accommodations, meta, isLoading, error } = useAccommodations({
+    params: {
+      search: searchTerm,
+      category: selectedCategory,
+      page,
+      perPage: 9,
+    },
   });
+
+  const categories = meta.filters.categories;
+  const pagination = meta.pagination;
+  const canGoToPreviousPage = pagination.current_page > 1;
+  const canGoToNextPage = pagination.current_page < pagination.last_page;
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setPage(1);
+  };
+
+  const capitalize = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
   return (
     <div>
@@ -45,72 +53,49 @@ const Accommodations: React.FC = () => {
           />
 
           {/* Search and Filter */}
-          <div className="mb-10 mt-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
-              <div className="relative w-full md:w-1/2">
-                <input
-                  type="text"
-                  placeholder="Cari akomodasi..."
-                  className="w-full px-4 py-2 pl-10 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              </div>
-
-              <button
-                className="flex items-center text-primary hover:text-primary-dark transition-colors duration-200 md:ml-auto"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <SlidersHorizontal className="h-5 w-5 mr-2" />
-                {showFilters ? 'Sembunyikan Filter' : 'Tampilkan Filter'}
-              </button>
+          <div className="mb-10 mt-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-1/3">
+              <input
+                type="text"
+                placeholder="Cari akomodasi..."
+                className="w-full px-4 py-2 pl-10 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
 
-            {showFilters && (
-              <div className="flex flex-col md:flex-row gap-4 items-center bg-gray-50 p-4 rounded-md">
-                <div className="w-full md:w-1/2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kategori
-                  </label>
-                  <select
-                    className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  >
-                    <option value="">Semua Kategori</option>
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="w-full md:w-1/2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kisaran Harga
-                  </label>
-                  <select
-                    className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
-                    value={priceRange}
-                    onChange={(e) => setPriceRange(e.target.value)}
-                  >
-                    <option value="">Semua Harga</option>
-                    <option value="0-300000">Dibawah Rp 300.000</option>
-                    <option value="300000-800000">Rp 300.000 - Rp 800.000</option>
-                    <option value="800000-1500000">Rp 800.000 - Rp 1.500.000</option>
-                    <option value="1500000-10000000">Diatas Rp 1.500.000</option>
-                  </select>
-                </div>
-              </div>
-            )}
+            <div className="w-full md:w-auto">
+              <select
+                className="w-full md:w-auto px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
+                value={selectedCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+              >
+                <option value="">Semua Kategori</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {capitalize(category)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* Accommodations Grid */}
-          {filteredAccommodations.length > 0 ? (
+          {isLoading && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-lg">Memuat akomodasi...</p>
+            </div>
+          )}
+
+          {!isLoading && error && (
+            <div className="text-center py-8">
+              <p className="text-red-600 text-lg">{error}</p>
+            </div>
+          )}
+
+          {!isLoading && !error && accommodations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredAccommodations.map((accommodation) => (
+              {accommodations.map((accommodation) => (
                 <Card
                   key={accommodation.id}
                   id={accommodation.id}
@@ -118,14 +103,62 @@ const Accommodations: React.FC = () => {
                   description={accommodation.description}
                   imageUrl={accommodation.imageUrl}
                   link="/akomodasi"
-                  category={accommodation.category}
-                  price={accommodation.price}
+                  category={capitalize(accommodation.category)}
+                  price={`Rp ${Number(accommodation.minPrice).toLocaleString('id-ID')} - Rp ${Number(accommodation.maxPrice).toLocaleString('id-ID')}`}
                 />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500 text-lg">Tidak ada akomodasi yang sesuai dengan pencarian Anda.</p>
+          ) : null}
+
+          {!isLoading && !error && accommodations.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+                <Hotel className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                {searchTerm || selectedCategory
+                  ? 'Tidak ada akomodasi yang sesuai'
+                  : 'Belum ada akomodasi yang terdaftar'}
+              </h3>
+              <p className="text-gray-500 text-center max-w-md">
+                {searchTerm || selectedCategory
+                  ? 'Coba ubah kata kunci pencarian atau filter kategori untuk menemukan akomodasi lain.'
+                  : 'Akomodasi di Temajuk belum tersedia saat ini. Silakan kembali lagi nanti!'}
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && pagination.total > 0 && (
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-600">
+                Menampilkan {pagination.from ?? 0}-{pagination.to ?? 0} dari {pagination.total} akomodasi
+              </p>
+
+              {pagination.last_page > 1 && (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                    disabled={!canGoToPreviousPage}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Sebelumnya
+                  </button>
+                  <span className="min-w-28 text-center text-sm text-gray-700">
+                    Halaman {pagination.current_page} dari {pagination.last_page}
+                  </span>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => setPage((currentPage) => currentPage + 1)}
+                    disabled={!canGoToNextPage}
+                  >
+                    Berikutnya
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
