@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
+import { OverlayProvider } from './contexts/OverlayContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/admin/ProtectedRoute';
@@ -24,10 +25,15 @@ import AccommodationList from './pages/admin/accommodations/AccommodationList';
 import AccommodationForm from './pages/admin/accommodations/AccommodationForm';
 import CulinaryList from './pages/admin/culinary/CulinaryList';
 import CulinaryForm from './pages/admin/culinary/CulinaryForm';
+import AdditionalCulinaryList from './pages/admin/additionalCulinary/AdditionalCulinaryList';
+import TransportationList from './pages/admin/transportations/TransportationList';
+import TransportationForm from './pages/admin/transportations/TransportationForm';
+import AdditionalInformationList from './pages/admin/additionalInformation/AdditionalInformationList';
 
 function App() {
   return (
     <AuthProvider>
+      <OverlayProvider>
       <Router>
         <Routes>
           {/* Public Routes with Navbar and Footer */}
@@ -68,8 +74,13 @@ function App() {
             <Route path="accommodations/add" element={<AccommodationForm />} />
             <Route path="accommodations/edit/:id" element={<AccommodationForm />} />
             <Route path="culinary" element={<CulinaryList />} />
+            <Route path="culinary/additional" element={<AdditionalCulinaryList/>} />
             <Route path="culinary/add" element={<CulinaryForm />} />
             <Route path="culinary/edit/:id" element={<CulinaryForm />} />
+            <Route path="transportations" element={<TransportationList />} />
+            <Route path="transportations/information" element={<AdditionalInformationList />} />
+            <Route path="transportations/add" element={<TransportationForm />} />
+            <Route path="transportations/edit/:id" element={<TransportationForm />} />
           </Route>
         </Routes>
       </Router>
@@ -98,6 +109,7 @@ function App() {
           },
         }}
       />
+    </OverlayProvider>
     </AuthProvider>
   );
 }

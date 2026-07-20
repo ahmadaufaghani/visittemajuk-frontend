@@ -1,11 +1,13 @@
 export interface Specialty {
     id: number,
     menu: string,
+    culinary_id: number
 }
 
 export interface Gallery {
     id: number,
     image: string,
+    culinary_id: number
 }
 
 export interface Culinary {
@@ -20,6 +22,7 @@ export interface Culinary {
     location_map: string,
     open_hours: string,
     contact: string,
+    slug:string,
     specialties: Specialty[],
     culinary_galleries: Gallery[]
 }
@@ -84,4 +87,21 @@ export interface CulinaryListMeta {
 export interface CulinaryListResult {
   culinaries: Culinary[];
   meta: CulinaryListMeta;
+}
+
+export interface AdditionalCulinary {
+  id: number,
+  title: string,
+  description: string,
+  image: File | string
+}
+
+export interface AdditionalCulinaryPayload {
+  title: string,
+  description: string,
+  image: File | string
+}
+
+export interface AdditionalCulinaryList {
+  data : AdditionalCulinary[]
 }

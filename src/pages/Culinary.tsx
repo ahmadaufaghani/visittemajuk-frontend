@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
-import { ChevronLeft, ChevronRight, Compass, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Compass, PackageOpen, Search } from 'lucide-react';
 import { PuffLoader } from 'react-spinners';
 import { useCulinaries } from '../hooks/useCulinaries';
+import { AdditionalCulinary } from '../types/culinary';
+import { getAdditionalCulinaries } from '../services/culinariesApi';
+import { ApiError } from '../lib/api';
 
 const Culinary: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [page, setPage] = useState<number>(1);
+  const [additionalCulinaries, setAdditionalCulinaries] = useState<AdditionalCulinary[]>();
+  const [isLoadingAddCulinary, setIsLoadingAddCulinary] = useState<boolean>(false);
+  const [errorAddCulinary, setErrorAddCulinary] = useState<string>('');
 
   const {culinaries, meta, isLoading : isLoadingCulinary, error} = useCulinaries({ 
     params: {
@@ -34,6 +40,24 @@ const Culinary: React.FC = () => {
     setSelectedCategory(value);
     setPage(1);
   }
+
+  useEffect(()=> {
+    setIsLoadingAddCulinary(true);
+    getAdditionalCulinaries()
+    .then(res => {
+      setAdditionalCulinaries(res);
+    })
+    .catch(err => {
+      setErrorAddCulinary("Data kuliner khas belum dapat dimuat.")
+      if(err instanceof ApiError) {
+        console.log(err.errors);
+      }
+    })
+    .finally(()=> {
+      setIsLoadingAddCulinary(false);
+    })
+  },[]);
+
 
   return (
     <div>
@@ -107,7 +131,7 @@ const Culinary: React.FC = () => {
               {culinaries.map((item) => (
                 <Card
                   key={item.id}
-                  id={String(item.id)}
+                  id={String(item.slug)}
                   title={item.title}
                   description={item.description}
                   imageUrl={`http://127.0.0.1:8000/storage/${item.image}`}
@@ -178,96 +202,58 @@ const Culinary: React.FC = () => {
             center={true}
           />
 
+          {isLoadingAddCulinary && (
+            <div className="text-center py-8">
+                <div className="flex justify-center">
+                  <PuffLoader
+                    color={"#4B5563"}
+                    loading={true}
+                    size={40}
+                    className="mb-6"
+                  />
+                </div>
+              <p className="text-gray-500 text-lg">Memuat kuliner khas...</p>
+            </div>
+          )}
+
+          {additionalCulinaries && additionalCulinaries.length === 0 &&  (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+              <PackageOpen className="h-10 w-10 text-gray-400" />
+            </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2"> 
+              Tidak ada data kuliner khas
+            </h3>
+            <p className="text-gray-500 text-center max-w-md">
+              Saat ini data kuliner khas belum tersedia.
+            </p>
+          </div>
+          )}
+
+          {!isLoadingAddCulinary && errorAddCulinary && (
+          <div className="text-center py-8">
+            <p className="text-red-600 text-lg">{errorAddCulinary}</p>
+          </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-            <div className="bg-white p-6 rounded-lg shadow-md flex">
-              <img
-                src="https://images.pexels.com/photos/1624487/pexels-photo-1624487.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Ikan Bakar Temajuk"
-                className="w-32 h-32 object-cover rounded-md mr-4"
-              />
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Ikan Bakar Temajuk</h3>
-                <p className="text-gray-600">
-                  Ikan segar hasil tangkapan nelayan lokal yang dibakar dengan bumbu khas Temajuk
-                  yang terdiri dari rempah-rempah lokal dan sambal terasi.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md flex">
-              <img
-                src="https://images.pexels.com/photos/699953/pexels-photo-699953.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Bubur Pedas Kalimantan"
-                className="w-32 h-32 object-cover rounded-md mr-4"
-              />
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Bubur Pedas Kalimantan</h3>
-                <p className="text-gray-600">
-                  Bubur beras yang dimasak dengan kaldu ikan dan dilengkapi dengan berbagai sayuran
-                  dan bumbu pedas khas Kalimantan Barat.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md flex">
-              <img
-                src="https://images.pexels.com/photos/725991/pexels-photo-725991.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Sotong Pangkong"
-                className="w-32 h-32 object-cover rounded-md mr-4"
-              />
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Sotong Pangkong</h3>
-                <p className="text-gray-600">
-                  Cumi-cumi segar yang dipukul hingga pipih lalu digoreng kering dan disajikan dengan
-                  sambal kacang yang pedas dan nikmat.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md flex">
-              <img
-                src="https://images.pexels.com/photos/1437590/pexels-photo-1437590.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Sayur Pakis Santan"
-                className="w-32 h-32 object-cover rounded-md mr-4"
-              />
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Sayur Pakis Santan</h3>
-                <p className="text-gray-600">
-                  Sayur pakis yang dimasak dengan santan kelapa dan rempah-rempah lokal, menciptakan
-                  hidangan yang lezat dan bergizi.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md flex">
-              <img
-                src="https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Kopi Robusta Kalimantan"
-                className="w-32 h-32 object-cover rounded-md mr-4"
-              />
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Kopi Robusta Kalimantan</h3>
-                <p className="text-gray-600">
-                  Kopi robusta lokal yang disangrai dan digiling secara tradisional, menghasilkan
-                  minuman kopi yang khas dengan aroma yang kuat.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md flex">
-              <img
-                src="https://images.pexels.com/photos/1099680/pexels-photo-1099680.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Kue Lapis Sambas"
-                className="w-32 h-32 object-cover rounded-md mr-4"
-              />
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Kue Lapis Sambas</h3>
-                <p className="text-gray-600">
-                  Kue lapis tradisional khas Sambas yang terbuat dari tepung beras, santan, dan gula
-                  dengan lapisan berwarna-warni yang menarik.
-                </p>
-              </div>
-            </div>
+            {additionalCulinaries && additionalCulinaries.map(item => {
+              return (
+                <div key={item.id+"div"} className="bg-white p-6 rounded-lg shadow-md flex">
+                  <img
+                    src={`http://127.0.0.1:8000/storage/${item.image}`}
+                    alt="Ikan Bakar Temajuk"
+                    className="w-32 h-32 object-cover rounded-md mr-4"
+                  />
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{item.title}</h3>
+                    <p className="text-gray-600">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>

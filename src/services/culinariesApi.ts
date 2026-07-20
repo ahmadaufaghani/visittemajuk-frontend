@@ -1,6 +1,9 @@
 
 import { apiRequest } from '../lib/api';
 import type {
+  AdditionalCulinary,
+  AdditionalCulinaryList,
+  AdditionalCulinaryPayload,
   Culinary,
   CulinaryListMeta,
   CulinaryListParams,
@@ -63,7 +66,7 @@ export async function getCulinaries(
   };
 }
 
-export async function getCulinary(id: number): Promise<Culinary> {
+export async function getCulinary(id: string): Promise<Culinary> {
   const response = await apiRequest<Culinary>(`/culinaries/${id}`);
 
   return response.data;
@@ -116,6 +119,20 @@ export async function createSpeciality(
   return response.data;
 }
 
+export async function updateSpeciality(
+  id: number,
+  payload: SpecialtyPayload,
+  token: string
+): Promise<Specialty> {
+  const response = await apiRequest<Specialty>(`/specialties/${id}`, {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
 export async function deleteSpeciality(id: number, token: string): Promise<void> {
   await apiRequest<null>(`/specialties/${id}`, {
     method: 'DELETE',
@@ -143,3 +160,46 @@ export async function deleteGallery(id: number, token: string): Promise<void> {
     token,
   });
 }
+
+export async function getAdditionalCulinaries(): Promise<AdditionalCulinary[]> {
+  const response = await apiRequest<AdditionalCulinary[]>('/additionalCulinaries', {
+    method: 'GET'
+  });
+
+  return response.data;
+}
+
+export async function createAdditionalCulinary(
+  payload: FormData,
+  token: string
+): Promise<AdditionalCulinaryPayload> {
+  const response = await apiRequest<AdditionalCulinaryPayload>('/additionalCulinaries', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function updateAdditionalCulinary(
+  id: number,
+  payload: FormData,
+  token: string
+): Promise<AdditionalCulinary> {
+  const response = await apiRequest<AdditionalCulinary>(`/additionalCulinaries/${id}`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function deleteAdditionalCulinary(id: number, token: string): Promise<void> {
+  await apiRequest<null>(`/additionalCulinaries/${id}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+

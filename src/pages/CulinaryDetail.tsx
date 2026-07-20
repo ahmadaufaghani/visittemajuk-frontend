@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { culinary } from '../data/culinary';
 import { MapPin, Clock, DollarSign, Phone, Utensils, ArrowLeft } from 'lucide-react';
 import Slider from 'react-slick';
 import {Culinary} from "../types/culinary";
 import { getCulinary } from '../services/culinariesApi';
+import { useAuth } from '../contexts/authContextValue';
 
 const CulinaryDetail: React.FC = () => {
 
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const [detailCulinary, setDetailCulinary] = useState<Culinary | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
+  const user = useAuth();
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setIsLoading(true);
-    getCulinary(Number(id))
+    getCulinary(String(id))
     .then(res => {
       setDetailCulinary(res);
     }).catch((err) => {
@@ -211,11 +212,11 @@ const CulinaryDetail: React.FC = () => {
 
               <div className="mt-6">
                 <Link
-                  to="/kuliner"
+                  to={`${user.token && Number(id) ? "/admin/culinary" : "/kuliner"}`}
                   className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow w-full justify-center transition-colors duration-300"
                 >
                   <ArrowLeft className="mr-2 h-5 w-5" />
-                  Kembali ke Daftar Kuliner
+                  {user.token && Number(id) ? "Kembali ke Daftar Kuliner" : "Kembali ke Kuliner"}
                 </Link>
               </div>
             </div>
