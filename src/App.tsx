@@ -26,6 +26,8 @@ import AccommodationForm from './pages/admin/accommodations/AccommodationForm';
 import CulinaryList from './pages/admin/culinary/CulinaryList';
 import CulinaryForm from './pages/admin/culinary/CulinaryForm';
 import AdditionalCulinaryList from './pages/admin/additionalCulinary/AdditionalCulinaryList';
+import PhotoSpotList from './pages/admin/photoSpots/PhotoSpotList';
+import PhotoSpotForm from './pages/admin/photoSpots/PhotoSpotForm';
 import TransportationList from './pages/admin/transportations/TransportationList';
 import TransportationForm from './pages/admin/transportations/TransportationForm';
 import AdditionalInformationList from './pages/admin/additionalInformation/AdditionalInformationList';
@@ -77,6 +79,9 @@ function App() {
             <Route path="culinary/additional" element={<AdditionalCulinaryList/>} />
             <Route path="culinary/add" element={<CulinaryForm />} />
             <Route path="culinary/edit/:id" element={<CulinaryForm />} />
+            <Route path="photo-spots" element={<PhotoSpotList />} />
+            <Route path="photo-spots/add" element={<PhotoSpotForm />} />
+            <Route path="photo-spots/edit/:id" element={<PhotoSpotForm />} />
             <Route path="transportations" element={<TransportationList />} />
             <Route path="transportations/information" element={<AdditionalInformationList />} />
             <Route path="transportations/add" element={<TransportationForm />} />
