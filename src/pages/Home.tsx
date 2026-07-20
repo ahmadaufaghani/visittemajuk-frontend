@@ -265,7 +265,7 @@ const Home: React.FC = () => {
                   id={accommodation.id}
                   title={accommodation.title}
                   description={accommodation.description}
-                  imageUrl={accommodation.imageUrl}
+                  imageUrl={`http://127.0.0.1:8000/storage/${accommodation.image}`}
                   link="/akomodasi"
                   category={accommodation.category}
                   price={accommodation.price}

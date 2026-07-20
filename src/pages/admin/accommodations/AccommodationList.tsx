@@ -161,7 +161,7 @@ const AccommodationList: React.FC = () => {
                       <div className="flex items-center">
                         <img
                           className="h-12 w-12 rounded-md object-cover flex-shrink-0"
-                          src={accommodation.imageUrl}
+                          src={`http://127.0.0.1:8000/storage/${accommodation.image}`}
                           alt={accommodation.title}
                         />
                         <div className="ml-4">

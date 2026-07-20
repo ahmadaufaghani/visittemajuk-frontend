@@ -111,7 +111,7 @@ const AccommodationDetail: React.FC = () => {
       {/* Hero Image */}
       <div
         className="w-full h-[50vh] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${accommodation.imageUrl})` }}
+        style={{ backgroundImage: `url(http://127.0.0.1:8000/storage/${accommodation.image})` }}
       >
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <div className="absolute bottom-0 left-0 w-full p-6">
@@ -202,14 +202,14 @@ const AccommodationDetail: React.FC = () => {
             </div>
 
             {/* Gallery */}
-            {accommodation.gallery.length > 0 && (
+            {accommodation.accomodation_galleries.length > 0 && (
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Galeri</h2>
                 <Slider {...sliderSettings} className="gallery-slider mb-6">
-                  {accommodation.gallery.map((image, index) => (
-                    <div key={index} className="p-1">
+                  {accommodation.accomodation_galleries.map((gallery, index) => (
+                    <div key={gallery.id} className="p-1">
                       <img
-                        src={image}
+                        src={`http://127.0.0.1:8000/storage/${gallery.image}`}
                         alt={`${accommodation.title} - Gambar ${index + 1}`}
                         className="w-full h-64 md:h-96 object-cover rounded-lg"
                       />

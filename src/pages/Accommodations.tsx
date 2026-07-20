@@ -101,7 +101,7 @@ const Accommodations: React.FC = () => {
                   id={accommodation.id}
                   title={accommodation.title}
                   description={accommodation.description}
-                  imageUrl={accommodation.imageUrl}
+                  imageUrl={`http://127.0.0.1:8000/storage/${accommodation.image}`}
                   link="/akomodasi"
                   category={capitalize(accommodation.category)}
                   price={`Rp ${Number(accommodation.minPrice).toLocaleString('id-ID')} - Rp ${Number(accommodation.maxPrice).toLocaleString('id-ID')}`}
