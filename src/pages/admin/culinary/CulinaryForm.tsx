@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Plus, X } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Pen, Check, Ban } from 'lucide-react';
 import { useAuth } from '../../../contexts/authContextValue';
 import type {
   Specialty,
@@ -8,8 +8,9 @@ import type {
   Culinary,
 } from '../../../types/culinary';
 import { ApiError } from '../../../lib/api';
-import { createCulinary, createGallery, createSpeciality, deleteGallery, deleteSpeciality, getCulinary, updateCulinary } from '../../../services/culinariesApi';
+import { createCulinary, createGallery, createSpeciality, deleteGallery, deleteSpeciality, getCulinary, updateCulinary, updateSpeciality } from '../../../services/culinariesApi';
 import { PuffLoader } from 'react-spinners';
+import toast from 'react-hot-toast';
 
 const CulinaryForm: React.FC = () => {
 
@@ -34,12 +35,13 @@ const CulinaryForm: React.FC = () => {
   const [galleriesUpdate, setGalleriesUpdate] = useState<Gallery[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
+  const [editSpecialtyId, setEditSpecialtyId] = useState<number>(0);
   const categories = ['Seafood', 'Indonesia', 'Kafe', 'Lokal', 'Tradisional'];
 
 
   const showCulinary = async (id: number) => {
       setIsLoading(true);
-      getCulinary(id).then(res => {
+      getCulinary(String(id)).then(res => {
         setIdCulinary(res.id);
         setTitle(res.title);
         setDescription(res.description);
@@ -80,11 +82,13 @@ const CulinaryForm: React.FC = () => {
 
       createCulinary(formBody,user.token as string)
       .then((res: Culinary ) => {
+        toast.success("Kuliner berhasil ditambahkan.")
         addSpecialtiesData(res.id);
         addGalleriesData(res.id);
       })
       .catch(err => {
         if(err instanceof ApiError) {
+          toast.error(`Kuliner gagal ditambahkan. Error : ${err.message}`);
           console.log(err.errors);
         }
       });
@@ -94,8 +98,14 @@ const CulinaryForm: React.FC = () => {
   const addSpecialtiesData = (id: number) => {
       specialties.map(async (val) => {
         createSpeciality({menu: val, culinary_id: id}, user.token as string)
+        .then(()=>{
+          toast.success("Menu spesial berhasil ditambahkan.");
+        })
         .catch(err => {
-          console.log(err);
+          if(err instanceof ApiError) {
+            toast.error(`Menu spesial gagal ditambahkan. Error ${err.message}`);
+            console.log(err.errors);
+          }
         })
       });
   }
@@ -106,8 +116,14 @@ const CulinaryForm: React.FC = () => {
         formGallery.append("image",val);
         formGallery.append("culinary_id",String(id));
         createGallery(formGallery, user.token as string)
+        .then(()=> {
+          toast.success("Galeri berhasil ditambahkan.");
+        })
         .catch(err => {
-          console.log(err);
+          if(err instanceof ApiError) {
+            toast.error(`Galeri gagal ditambahkan. Error : ${err.message}`);
+            console.log(err.errors);
+          }
         })
       });
 
@@ -128,11 +144,15 @@ const CulinaryForm: React.FC = () => {
 
     updateCulinary(id, formBody, user.token as string)
     .then(() => {
+      toast.success("Kuliner berhasil diperbarui.");
       addSpecialtiesData(idCulinary);
       addGalleriesData(idCulinary);
       })
     .catch(err => {
-      console.log(err);
+      if(err instanceof ApiError) {
+        toast.error(`Kuliner gagal diperbarui. Error : ${err.message}`);
+        console.log(err.errors);
+      }
     });
   }
 
@@ -146,6 +166,10 @@ const CulinaryForm: React.FC = () => {
 
   const handleArrayChangeSpecialties = (index: number, value: string) => {
     setSpecialities(specialties.map((item, i) => i === index ? value : item));
+  };
+
+  const handleArrayChangeSpecialtiesUpdate = (index: number, key: string, value: string) => {
+    setSpecialitiesUpdate(specialtiesUpdate.map((item, i) => i === index ? {...item, [key]:value} : item));
   };
 
   const handleArrayChangeGallery = (index: number, value: File) => {
@@ -215,6 +239,7 @@ const CulinaryForm: React.FC = () => {
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   required
+                  placeholder="cth: Rumah Makan Sari Rasa"
                 />
               </div>
 
@@ -247,7 +272,7 @@ const CulinaryForm: React.FC = () => {
                   name="price"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="Rp 25.000 - Rp 100.000"
+                  placeholder="cth: Rp 25.000 - Rp 100.000"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   required
                 />
@@ -263,7 +288,7 @@ const CulinaryForm: React.FC = () => {
                   name="openHours"
                   value={openHours}
                   onChange={(e) => setOpenHours(e.target.value)}
-                  placeholder="11.00 - 21.00 WIB"
+                  placeholder="cth: 11.00 - 21.00 WIB"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   required
                 />
@@ -271,7 +296,7 @@ const CulinaryForm: React.FC = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nomor Telepon (Opsional)
+                  Nomor Telepon *
                 </label>
                 <input
 
@@ -279,7 +304,7 @@ const CulinaryForm: React.FC = () => {
                   name="contact"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  placeholder="+62 8123 4567 890"
+                  placeholder="cth: +62 8123 4567 890"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
@@ -296,6 +321,7 @@ const CulinaryForm: React.FC = () => {
                 rows={2}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
+                placeholder="cth: Jl. Utama Temajuk No. 25, Desa Temajuk, Kecamatan Paloh, Kabupaten Sambas"
               />
             </div>
 
@@ -310,6 +336,7 @@ const CulinaryForm: React.FC = () => {
                 rows={2}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
+                placeholder="cth: https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d127601.4652245904!2d109.52879789999999!3d1..."
               />
             </div>
 
@@ -340,6 +367,9 @@ const CulinaryForm: React.FC = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 required={image ? false : true}
               />
+              <div>
+                <span className="text-xs text-red-700">*ext: .jpg, .jpeg, .webp; max: 1 MB</span>
+              </div>
             </div>
 
             <div className="mt-6">
@@ -353,6 +383,7 @@ const CulinaryForm: React.FC = () => {
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
+                placeholder="Masukkan deskripsi singkat dari tempat kuliner"
               />
             </div>
 
@@ -367,6 +398,7 @@ const CulinaryForm: React.FC = () => {
                 rows={5}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
+                placeholder="Masukkan deskripsi lengkap dari tempat kuliner"
               />
             </div>
           </div>
@@ -391,29 +423,61 @@ const CulinaryForm: React.FC = () => {
               return (
               <div key={index} className="flex items-center space-x-2 ">
                 <input
-                  disabled
+                  disabled={!(item.id === editSpecialtyId)}
                   type="text"
                   value={item.menu}
-                  onChange={(e) => handleArrayChangeSpecialties(index,e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md cursor-not-allowed"
+                  onChange={(e) => handleArrayChangeSpecialtiesUpdate(index, "menu", e.target.value)}
+                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${item.id === editSpecialtyId ? "" : "cursor-not-allowed"}`}
                   placeholder="Nama menu spesial"
                 />
                 <button
-                      key={`button-speciality-${index}`}
+                      key={`button-speciality-edit-${index}`}
                       type="button"
                       onClick={() => {
-                        setIsLoading(true);
-                        deleteSpeciality(item.id,user.token as string)
-                        .then(() => {
-                          showCulinary(Number(id));
-                        }).catch(err => {
-                          console.log(err);
-                        });
+                        setEditSpecialtyId(prev => prev === item.id ? 0 : item.id);
+                        if(item.id === editSpecialtyId) {
+                          setIsLoading(true);
+                          updateSpeciality(item.id, specialtiesUpdate[index], user.token as string)
+                          .then(()=>{
+                            toast.success("Menu spesial berhasil diperbarui.");
+                            showCulinary(Number(id));
+                          })
+                          .catch(err => {
+                            if(err instanceof ApiError) {
+                              toast.error(`Menu spesial gagal diperbarui. Error : ${err.message}`);
+                              console.log(err.errors);
+                            }
+                          })
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      {item.id === editSpecialtyId ? <Check className="h-3 w-3"/> : <Pen className="h-3 w-3" />}
+                </button>
+                <button
+                      key={`button-speciality-delete-${index}`}
+                      type="button"
+                      onClick={() => {
+                        if(item.id === editSpecialtyId) {
+                          setEditSpecialtyId(0);
+                        } else {
+                          setIsLoading(true);
+                          deleteSpeciality(item.id,user.token as string)
+                          .then(() => {
+                            toast.success("Menu spesial berhasil dihapus.");
+                            showCulinary(Number(id));
+                          }).catch(err => {
+                            if(err instanceof ApiError) {
+                              toast.error(`Menu spesial gagal dihapus. Error: ${err.message}`);
+                              console.log(err.errors);
+                            }
+                          });
+                        }
                       }}
                       className="text-red-600 hover:text-red-800"
                     >
-                      <X className="h-4 w-4" />
-                    </button>
+                      {item.id === editSpecialtyId ? <Ban className="h-3 w-3"/> : <X className="h-4 w-4" />}
+                </button>
               </div>)
               }) 
             }
@@ -471,9 +535,13 @@ const CulinaryForm: React.FC = () => {
                         setIsLoading(true);
                         deleteGallery(item.id,user.token as string)
                         .then(() => {
+                          toast.success("Galeri berhasil dihapus.");
                           showCulinary(Number(id));
                         }).catch(err => {
-                          console.log(err);
+                          if(err instanceof ApiError) {
+                            toast.error(`Galeri gagal dihapus. Error : ${err.message}`);
+                            console.log(err.errors);
+                          }
                         });
                       }}
                       className="text-red-600 hover:text-red-800"

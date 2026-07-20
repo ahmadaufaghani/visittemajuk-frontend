@@ -11,6 +11,7 @@ import { createReviews } from '../services/reviewsApi';
 import { useAuth } from '../contexts/authContextValue';
 import { useReviews } from '../hooks/useReview';
 import dateFormatter from '../utils/dateFormatter';
+import toast from 'react-hot-toast';
 
 const Reviews: React.FC = () => {
 
@@ -68,7 +69,10 @@ const Reviews: React.FC = () => {
         rating: Number(formRating),
         destination_id : Number(formDestination)
       }
-      await createReviews(addReviewData,user?.token as string);
+      await createReviews(addReviewData,user?.token as string)
+      .then(()=>{
+        toast.success("Ulasan berhasil ditambahkan.");
+      });
       setFormName("");
       setFormDestination(0);
       setFormRating(0);
@@ -176,7 +180,7 @@ const Reviews: React.FC = () => {
                   className="mb-6"
                 />
               </div>
-            <p className="text-gray-500 text-lg">Memuat review...</p>
+            <p className="text-gray-500 text-lg">Memuat ulasan...</p>
           </div>
           )}
 
@@ -208,10 +212,10 @@ const Reviews: React.FC = () => {
                 <Compass className="h-10 w-10 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                {searchTerm || selectedDestination || selectedRating ? 'Review tidak ditemukan' : "Tidak ada data review"}
+                {searchTerm || selectedDestination || selectedRating ? 'Ulasan tidak ditemukan' : "Tidak ada data ulasan"}
               </h3>
               <p className="text-gray-500 text-center max-w-md">
-                {searchTerm || selectedDestination || selectedRating ? 'Coba ubah kata kunci pencarian atau filter kategori maupun rating untuk menemukan review lain.': "Tambahkan review melalui formulir di bawah ini"}
+                {searchTerm || selectedDestination || selectedRating ? 'Coba ubah kata kunci pencarian atau filter kategori maupun rating untuk menemukan ulasan lain.': "Tambahkan ulasan melalui formulir di bawah ini"}
               </p>
             </div>
           )}
@@ -220,7 +224,7 @@ const Reviews: React.FC = () => {
           {!isLoading && !error && pagination.total > 0 && (
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-600">
-              Menampilkan {pagination.from ?? 0}-{pagination.to ?? 0} dari {pagination.total} review
+              Menampilkan {pagination.from ?? 0}-{pagination.to ?? 0} dari {pagination.total} ulasan
             </p>
 
             {pagination.last_page > 1 && (

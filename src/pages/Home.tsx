@@ -360,7 +360,7 @@ const Home: React.FC = () => {
 
           {isLoadingReviews && (
             <div className="text-center py-8">
-              <p className="text-gray-500">Memuat review...</p>
+              <p className="text-gray-500">Memuat ulasan...</p>
             </div>
           )}
 
@@ -394,10 +394,10 @@ const Home: React.FC = () => {
                 <Compass className="h-10 w-10 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                Tidak ada data review
+                Tidak ada data ulasan
               </h3>
               <p className="text-gray-500 text-center max-w-md">
-                Review wisata di Temajuk belum tersedia saat ini. Silakan kembali lagi nanti!
+                Ulasan wisata di Temajuk belum tersedia saat ini. Silakan kembali lagi nanti!
               </p>
             </div>
           )}
