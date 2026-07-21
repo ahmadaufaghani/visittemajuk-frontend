@@ -4,7 +4,6 @@ import type {
   AccommodationListMeta,
   AccommodationListParams,
   AccommodationListResult,
-  AccommodationPayload,
 } from '../types/accommodation';
 
 const emptyAccommodationListMeta: AccommodationListMeta = {
@@ -82,7 +81,7 @@ export async function getAccommodation(id: string): Promise<Accommodation> {
 }
 
 export async function createAccommodation(
-  payload: AccommodationPayload,
+  payload: FormData,
   token: string
 ): Promise<Accommodation> {
   const response = await apiRequest<Accommodation>('/admin/accomodations', {
@@ -96,11 +95,11 @@ export async function createAccommodation(
 
 export async function updateAccommodation(
   id: string,
-  payload: AccommodationPayload,
+  payload: FormData,
   token: string
 ): Promise<Accommodation> {
   const response = await apiRequest<Accommodation>(`/admin/accomodations/${id}`, {
-    method: 'PUT',
+    method: 'POST',
     token,
     body: payload,
   });
@@ -110,6 +109,24 @@ export async function updateAccommodation(
 
 export async function deleteAccommodation(id: string, token: string): Promise<void> {
   await apiRequest<null>(`/admin/accomodations/${id}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+export async function createAccommodationGallery(
+  payload: FormData,
+  token: string
+): Promise<void> {
+  await apiRequest<unknown>('/admin/accomodationGalleries', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteAccommodationGallery(id: number, token: string): Promise<void> {
+  await apiRequest<null>(`/admin/accomodationGalleries/${id}`, {
     method: 'DELETE',
     token,
   });

@@ -2,23 +2,22 @@ import React, { useState } from 'react';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
-import { photoSpots } from '../data/photoSpots';
 import { Search } from 'lucide-react';
+import { PuffLoader } from 'react-spinners';
+import { usePhotoSpots } from '../hooks/usePhotoSpots';
 
 const PhotoSpots: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-
-  const categories = [...new Set(photoSpots.map((spot) => spot.category))];
-
-  const filteredPhotoSpots = photoSpots.filter((spot) => {
-    const matchesSearch = spot.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      spot.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === '' || spot.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
+  const { photoSpots, meta, isLoading, error } = usePhotoSpots({
+    params: {
+      search: searchTerm,
+      category: selectedCategory,
+      perPage: 9,
+    },
   });
+
+  const categories = [...new Set(meta.filters.categories.map((category) => category))];
 
   return (
     <div>
@@ -64,16 +63,31 @@ const PhotoSpots: React.FC = () => {
             </div>
           </div>
 
+          {isLoading && (
+            <div className="text-center py-8">
+              <div className="flex justify-center">
+                <PuffLoader color={'#4B5563'} loading={isLoading} size={40} className="mb-6" />
+              </div>
+              <p className="text-gray-500 text-lg">Memuat spot foto...</p>
+            </div>
+          )}
+
+          {!isLoading && error && (
+            <div className="text-center py-8">
+              <p className="text-red-600 text-lg">{error}</p>
+            </div>
+          )}
+
           {/* Photo Spots Grid */}
-          {filteredPhotoSpots.length > 0 ? (
+          {!isLoading && !error && photoSpots.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredPhotoSpots.map((spot) => (
+              {photoSpots.map((spot) => (
                 <Card
                   key={spot.id}
-                  id={spot.id}
+                  id={spot.slug}
                   title={spot.title}
                   description={spot.description}
-                  imageUrl={spot.imageUrl}
+                  imageUrl={`http://127.0.0.1:8000/storage/${spot.image}`}
                   link="/foto"
                   category={spot.category}
                 />
@@ -87,7 +101,6 @@ const PhotoSpots: React.FC = () => {
         </div>
       </section>
 
-      {/* Photography Tips Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionTitle

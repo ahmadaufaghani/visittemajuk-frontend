@@ -6,20 +6,27 @@ export interface RoomType {
   price: number;
 }
 
+export interface AccommodationGallery {
+  id: number;
+  image: string;
+  accomodation_id: number;
+}
+
 export interface Accommodation {
   id: string;
   title: string;
   description: string;
   fullDescription: string;
-  imageUrl: string;
+  image: string;
   category: string;
   minPrice: number;
   maxPrice: number;
   location: string;
+  location_map: string;
   contacs: string;
   siteUrl: string;
   facilities: string[];
-  gallery: string[];
+  accomodation_galleries: AccommodationGallery[];
   roomTypes: RoomType[];
 }
 
@@ -34,15 +41,14 @@ export interface AccommodationPayload {
   title: string;
   description: string;
   fullDescription: string;
-  imageUrl: string;
   category: string;
   minPrice: number;
   maxPrice: number;
   location: string;
+  location_map: string;
   contacs: string;
   siteUrl: string;
   facilities: string[];
-  gallery: string[];
   roomTypes: RoomTypePayload[];
 }
 

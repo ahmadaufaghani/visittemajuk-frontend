@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   Bus,
+  Camera,
   ChevronDown,
   ChevronUp,
   X,
@@ -56,6 +57,11 @@ const AdminLayout: React.FC = () => {
           path: '/additional'
         }
       ]
+    },
+    {
+      title: 'Spot Foto',
+      icon: Camera,
+      path: '/admin/photo-spots'
     }
   ];
 
@@ -168,6 +174,7 @@ const AdminLayout: React.FC = () => {
               {location.pathname.includes('/accommodations') && 'Manajemen Akomodasi'}
               {location.pathname.includes('/transportations') && 'Transportasi'}
               {location.pathname.includes('/culinary') && 'Kuliner'}
+              {location.pathname.includes('/photo-spots') && 'Spot Foto'}
               {location.pathname.includes('/culinary/additional') && ' '+'Khas'}
             </h2>
           </div>

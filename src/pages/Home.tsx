@@ -7,11 +7,11 @@ import Card from '../components/Card';
 import Testimonial from '../components/Testimonial';
 import { useDestinations } from '../hooks/useDestinations';
 import { accommodations } from '../data/accommodations';
-import { photoSpots } from '../data/photoSpots';
 import { Map, MapPin, Compass, Utensils, Camera, ChevronRight } from 'lucide-react';
 import avatar from '../assets/img/user.png'
 import { useReviews } from '../hooks/useReview';
 import dateFormatter from '../utils/dateFormatter';
+import { usePhotoSpots } from '../hooks/usePhotoSpots';
 
 const Home: React.FC = () => {
 
@@ -27,6 +27,12 @@ const Home: React.FC = () => {
     isLoading: isLoadingReviews,
     error: reviewsError,
   } = useReviews();
+
+  const {
+    photoSpots,
+    isLoading: isLoadingPhotoSpots,
+    error: photoSpotsError,
+  } = usePhotoSpots({ params: { perPage: 3 } });
 
 
   useEffect(() => {
@@ -67,7 +73,6 @@ const Home: React.FC = () => {
   };
 
   const featuredDestinations = destinations.slice(0, 3);
-  const featuredPhotos = photoSpots.slice(0, 3);
   const featuredReviews = reviews?.slice(0, 4);
 
   return (
@@ -265,7 +270,7 @@ const Home: React.FC = () => {
                   id={accommodation.id}
                   title={accommodation.title}
                   description={accommodation.description}
-                  imageUrl={accommodation.imageUrl}
+                  imageUrl={`http://127.0.0.1:8000/storage/${accommodation.image}`}
                   link="/akomodasi"
                   category={accommodation.category}
                   price={accommodation.price}
@@ -325,19 +330,33 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredPhotos.map((spot) => (
-              <Card
-                key={spot.id}
-                id={spot.id}
-                title={spot.title}
-                description={spot.description}
-                imageUrl={spot.imageUrl}
-                link="/foto"
-                category={spot.category}
-              />
-            ))}
-          </div>
+          {isLoadingPhotoSpots && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Memuat spot foto...</p>
+            </div>
+          )}
+
+          {!isLoadingPhotoSpots && photoSpotsError && (
+            <div className="text-center py-8">
+              <p className="text-red-600">{photoSpotsError}</p>
+            </div>
+          )}
+
+          {!isLoadingPhotoSpots && !photoSpotsError && photoSpots.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {photoSpots.map((spot) => (
+                <Card
+                  key={spot.id}
+                  id={spot.slug}
+                  title={spot.title}
+                  description={spot.description}
+                  imageUrl={`http://127.0.0.1:8000/storage/${spot.image}`}
+                  link="/foto"
+                  category={spot.category}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
