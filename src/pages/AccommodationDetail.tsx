@@ -4,6 +4,7 @@ import { getAccommodation } from '../services/accommodationsApi';
 import type { Accommodation } from '../types/accommodation';
 import { MapPin, Phone, Globe, Bed, ArrowLeft } from 'lucide-react';
 import Slider from 'react-slick';
+import { storageUrl } from '../utils/storageUrl';
 
 const AccommodationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -111,7 +112,7 @@ const AccommodationDetail: React.FC = () => {
       {/* Hero Image */}
       <div
         className="w-full h-[50vh] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(http://127.0.0.1:8000/storage/${accommodation.image})` }}
+        style={{ backgroundImage: `url(${storageUrl(accommodation.image)})` }}
       >
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <div className="absolute bottom-0 left-0 w-full p-6">
@@ -209,7 +210,7 @@ const AccommodationDetail: React.FC = () => {
                   {accommodation.accomodation_galleries.map((gallery, index) => (
                     <div key={gallery.id} className="p-1">
                       <img
-                        src={`http://127.0.0.1:8000/storage/${gallery.image}`}
+                        src={storageUrl(gallery.image)}
                         alt={`${accommodation.title} - Gambar ${index + 1}`}
                         className="w-full h-64 md:h-96 object-cover rounded-lg"
                       />

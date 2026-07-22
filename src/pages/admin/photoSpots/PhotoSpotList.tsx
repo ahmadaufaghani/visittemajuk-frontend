@@ -7,6 +7,7 @@ import { useAuth } from '../../../contexts/authContextValue';
 import { ApiError } from '../../../lib/api';
 import { usePhotoSpots } from '../../../hooks/usePhotoSpots';
 import { deletePhotoSpot } from '../../../services/photoSpotsApi';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const PhotoSpotList: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<number>(0);
@@ -36,7 +37,7 @@ const PhotoSpotList: React.FC = () => {
         .catch((err) => {
           if (err instanceof ApiError) {
             toast.error(`Spot foto gagal dihapus. Error : ${err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
       reload();
@@ -121,7 +122,7 @@ const PhotoSpotList: React.FC = () => {
                         <div className="flex items-center">
                           <img
                             className="h-12 w-12 rounded-md object-cover"
-                            src={`http://127.0.0.1:8000/storage/${item.image}`}
+                            src={storageUrl(item.image)}
                             alt={item.title}
                           />
                           <div className="ml-4">

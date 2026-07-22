@@ -7,6 +7,7 @@ import { useCulinaries } from '../../../hooks/useCulinaries';
 import { deleteCulinary } from '../../../services/culinariesApi';
 import toast from 'react-hot-toast';
 import { ApiError } from '../../../lib/api';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const CulinaryList: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<number>(0);
@@ -31,7 +32,7 @@ const CulinaryList: React.FC = () => {
       .catch(err => {
         if(err instanceof ApiError) {
           toast.error(`Kuliner gagal dihapus. Error : ${err.message}`);
-          console.log(err.errors);
+          console.error(err.errors);
         }
       });
       reload();
@@ -121,7 +122,7 @@ const CulinaryList: React.FC = () => {
                     <div className="flex items-center">
                       <img
                         className="h-12 w-12 rounded-md object-cover"
-                        src={`http://127.0.0.1:8000/storage/${item.image}`}
+                        src={storageUrl(item.image)}
                         alt={item.title}
                       />
                       <div className="ml-4">

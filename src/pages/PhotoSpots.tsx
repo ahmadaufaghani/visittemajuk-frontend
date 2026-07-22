@@ -5,6 +5,8 @@ import Card from '../components/Card';
 import { Search } from 'lucide-react';
 import { PuffLoader } from 'react-spinners';
 import { usePhotoSpots } from '../hooks/usePhotoSpots';
+import { usePhotographyTips } from '../hooks/usePhotographyTips';
+import { storageUrl } from '../utils/storageUrl';
 
 const PhotoSpots: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +18,7 @@ const PhotoSpots: React.FC = () => {
       perPage: 9,
     },
   });
+  const { tips: photographyTips, isLoading: isLoadingTips } = usePhotographyTips();
 
   const categories = [...new Set(meta.filters.categories.map((category) => category))];
 
@@ -87,7 +90,7 @@ const PhotoSpots: React.FC = () => {
                   id={spot.slug}
                   title={spot.title}
                   description={spot.description}
-                  imageUrl={`http://127.0.0.1:8000/storage/${spot.image}`}
+                  imageUrl={storageUrl(spot.image)}
                   link="/foto"
                   category={spot.category}
                 />
@@ -109,85 +112,29 @@ const PhotoSpots: React.FC = () => {
             center={true}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <img
-                src="https://www.kelasgarasi.com/wp-content/uploads/2023/12/golden-hour-kelas-garasi.jpg"
-                alt="Golden Hour"
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Manfaatkan Golden Hour</h3>
-              <p className="text-gray-600">
-                Ambil foto saat golden hour (1 jam setelah matahari terbit atau 1 jam sebelum matahari terbenam)
-                untuk mendapatkan pencahayaan alami terbaik dengan nuansa keemasan yang hangat.
-              </p>
+          {isLoadingTips ? (
+            <div className="text-center py-8">
+              <PuffLoader color="#4B5563" loading={isLoadingTips} size={40} className="mx-auto" />
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <img
-                src="https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Wide Angle"
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Bawa Lensa Wide-Angle</h3>
-              <p className="text-gray-600">
-                Untuk mengabadikan keindahan lanskap pantai, hutan mangrove, dan pemandangan dari puncak bukit,
-                lensa wide-angle akan membantu menangkap keluasan pemandangan.
-              </p>
+          ) : photographyTips.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+              {photographyTips.map((tip) => (
+                <div key={tip.id} className="bg-white p-6 rounded-lg shadow-md">
+                  {tip.image ? (
+                    <img
+                      src={storageUrl(tip.image)}
+                      alt={tip.title}
+                      className="w-full h-48 object-cover rounded-md mb-4"
+                    />
+                  ) : null}
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{tip.title}</h3>
+                  <p className="text-gray-600">{tip.description}</p>
+                </div>
+              ))}
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <img
-                src="https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Reflections"
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Manfaatkan Refleksi</h3>
-              <p className="text-gray-600">
-                Cari permukaan air yang tenang seperti di Danau Laut Madu untuk menciptakan foto dengan
-                refleksi yang dramatis dan memukau.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <img
-                src="https://images.pexels.com/photos/691909/pexels-photo-691909.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
-                alt="Silhouettes"
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Ciptakan Siluet</h3>
-              <p className="text-gray-600">
-                Saat matahari terbenam di Sunset Point, posisikan subjek Anda di depan matahari untuk
-                menciptakan foto siluet yang dramatis dan penuh cerita.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <img
-                src="https://images.pexels.com/photos/1046896/pexels-photo-1046896.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Local Elements"
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Sertakan Elemen Lokal</h3>
-              <p className="text-gray-600">
-                Tambahkan elemen lokal seperti perahu nelayan, pohon kelapa, atau penduduk lokal dalam
-                foto Anda untuk menambahkan cerita dan keunikan budaya setempat.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <img
-                src="https://images.pexels.com/photos/1122408/pexels-photo-1122408.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-                alt="Drone"
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Gunakan Drone (Jika Diizinkan)</h3>
-              <p className="text-gray-600">
-                Untuk mendapatkan perspektif yang berbeda, gunakan drone untuk mengambil foto aerial
-                (pastikan untuk memeriksa peraturan setempat tentang penggunaan drone).
-              </p>
-            </div>
-          </div>
+          ) : (
+            <p className="text-center text-gray-500 mt-8">Tips fotografi belum tersedia.</p>
+          )}
         </div>
       </section>
     </div>

@@ -12,6 +12,7 @@ import { ApiError } from '../../../lib/api';
 import { getTransportation, createTransportation, updateTransportation, createSteps, createTips, deleteSteps, deleteTips, updateTransportationSteps, updateTransportationTips } from '../../../services/transportationsApi';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const TransportationForm: React.FC = () => {
 
@@ -52,7 +53,7 @@ const TransportationForm: React.FC = () => {
         setTipsUpdate(res.transportation_tips);
         setIsLoading(false);
       }).catch(err => {
-        console.log(err);
+        console.error(err);
       });
   }
 
@@ -80,7 +81,7 @@ const TransportationForm: React.FC = () => {
       .catch(err => {
         if(err instanceof ApiError) {
           toast.error(`Transportasi gagal ditambahkan. Error : ${err.message}`);
-          console.log(err.errors);
+          console.error(err.errors);
         }
       });
 
@@ -95,7 +96,7 @@ const TransportationForm: React.FC = () => {
         .catch(err => {
           if(err instanceof ApiError) {
             toast.error(`Langkah baru gagal ditambahkan. Error : ${err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
       });
@@ -110,7 +111,7 @@ const TransportationForm: React.FC = () => {
         .catch(err => {
          if(err instanceof ApiError) {
             toast.error(`Tips baru gagal ditambahkan. Error : ${err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
       });
@@ -133,7 +134,7 @@ const TransportationForm: React.FC = () => {
         addTipsData(idTransportation);
       })
     .catch(err => {
-      console.log(err);
+      console.error(err);
     });
   }
 
@@ -287,7 +288,7 @@ const TransportationForm: React.FC = () => {
               </label>
               {preview || id && image ? 
                 <img
-                  src={preview ? preview : `http://127.0.0.1:8000/storage/${image}`}
+                  src={preview ? preview : storageUrl(image as string)}
                   className='mb-4 w-64'
                 />
                 :
@@ -296,6 +297,7 @@ const TransportationForm: React.FC = () => {
               <input
                 type="file"
                 name="image"
+                accept="image/jpeg,image/webp"
                 onChange={(e) => {
 
                   const target = e.target as HTMLInputElement & {
@@ -368,7 +370,7 @@ const TransportationForm: React.FC = () => {
                           .catch(err => {
                             if(err instanceof ApiError) {
                               toast.error(`Langkah gagal diperbarui. Error: ${err.message}`)
-                              console.log(err.errors);
+                              console.error(err.errors);
                             }
                           });
                         }
@@ -397,7 +399,7 @@ const TransportationForm: React.FC = () => {
                           .catch(err => {
                             if(err instanceof ApiError) {
                               toast.error(`Langkah gagal dihapus. Error: ${err.message}`)
-                              console.log(err.errors);
+                              console.error(err.errors);
                             }
                           });
                         }
@@ -604,7 +606,7 @@ const TransportationForm: React.FC = () => {
                           .catch((err) => {
                             if(err instanceof ApiError) {
                               toast.error(`Tips gagal diperbarui. Error : ${err.message}`);
-                              console.log(err.errors);
+                              console.error(err.errors);
                             }
                           });
                         }
@@ -625,7 +627,7 @@ const TransportationForm: React.FC = () => {
                           .then(() => {
                             showTransportation(Number(id));
                           }).catch(err => {
-                            console.log(err);
+                            console.error(err);
                           });
                         }
                       }}

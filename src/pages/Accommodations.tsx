@@ -3,6 +3,7 @@ import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
 import { useAccommodations } from '../hooks/useAccommodations';
+import { storageUrl } from '../utils/storageUrl';
 import { ChevronLeft, ChevronRight, Search, Hotel } from 'lucide-react';
 
 const Accommodations: React.FC = () => {
@@ -101,7 +102,7 @@ const Accommodations: React.FC = () => {
                   id={accommodation.id}
                   title={accommodation.title}
                   description={accommodation.description}
-                  imageUrl={`http://127.0.0.1:8000/storage/${accommodation.image}`}
+                  imageUrl={storageUrl(accommodation.image)}
                   link="/akomodasi"
                   category={capitalize(accommodation.category)}
                   price={`Rp ${Number(accommodation.minPrice).toLocaleString('id-ID')} - Rp ${Number(accommodation.maxPrice).toLocaleString('id-ID')}`}

@@ -5,13 +5,14 @@ import Slider from 'react-slick';
 import { useAuth } from '../contexts/authContextValue';
 import { getPhotoSpot } from '../services/photoSpotsApi';
 import type { PhotoSpot } from '../types/photoSpot';
+import { storageUrl } from '../utils/storageUrl';
 
 const PhotoSpotDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [photoSpot, setPhotoSpot] = useState<PhotoSpot | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
-  const { token } = useAuth();
+  const user = useAuth();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -24,7 +25,7 @@ const PhotoSpotDetail: React.FC = () => {
       })
       .catch((err) => {
         setError(true);
-        console.log(err);
+        console.error(err);
       })
       .finally(() => {
         setIsLoading(false);
@@ -46,14 +47,6 @@ const PhotoSpotDetail: React.FC = () => {
       ? photoSpot.photo_spot_galleries.map((gallery) => gallery.image)
       : [photoSpot.image]
     : [];
-
-  const resolveImageUrl = (imagePath: string) => {
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('/')) {
-      return imagePath;
-    }
-
-    return `http://127.0.0.1:8000/storage/${imagePath}`;
-  };
 
   if (isLoading) {
     return (
@@ -87,7 +80,7 @@ const PhotoSpotDetail: React.FC = () => {
       {/* Hero Image */}
       <div
         className="w-full h-[50vh] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(http://127.0.0.1:8000/storage/${photoSpot.image})` }}
+        style={{ backgroundImage: `url(${storageUrl(photoSpot.image)})` }}
       >
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <div className="absolute bottom-0 left-0 w-full p-6">
@@ -142,7 +135,7 @@ const PhotoSpotDetail: React.FC = () => {
                 {galleryImages.map((image, index) => (
                   <div key={index} className="p-1">
                     <img
-                      src={resolveImageUrl(image)}
+                      src={storageUrl(image)}
                       alt={`${photoSpot.title} - Gambar ${index + 1}`}
                       className="w-full h-64 md:h-96 object-cover rounded-lg"
                     />
@@ -205,11 +198,11 @@ const PhotoSpotDetail: React.FC = () => {
 
               <div className="mt-6">
                 <Link
-                  to={token ? '/admin/photo-spots' : '/foto'}
+                  to={user?.user?.role === 'admin' ? '/admin/photo-spots' : '/foto'}
                   className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow w-full justify-center transition-colors duration-300"
                 >
                   <ArrowLeft className="mr-2 h-5 w-5" />
-                  {token ? 'Kembali ke Daftar Spot Foto' : 'Kembali ke Spot Foto'}
+                  {user?.user?.role === 'admin' ? 'Kembali ke Daftar Spot Foto' : 'Kembali ke Spot Foto'}
                 </Link>
               </div>
             </div>

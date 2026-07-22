@@ -11,6 +11,7 @@ import { ApiError } from '../../../lib/api';
 import { createCulinary, createGallery, createSpeciality, deleteGallery, deleteSpeciality, getCulinary, updateCulinary, updateSpeciality } from '../../../services/culinariesApi';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const CulinaryForm: React.FC = () => {
 
@@ -57,7 +58,7 @@ const CulinaryForm: React.FC = () => {
         setGalleriesUpdate(res.culinary_galleries);
         setIsLoading(false);
       }).catch(err => {
-        console.log(err);
+        console.error(err);
       })
   }
 
@@ -89,7 +90,7 @@ const CulinaryForm: React.FC = () => {
       .catch(err => {
         if(err instanceof ApiError) {
           toast.error(`Kuliner gagal ditambahkan. Error : ${err.message}`);
-          console.log(err.errors);
+          console.error(err.errors);
         }
       });
 
@@ -104,7 +105,7 @@ const CulinaryForm: React.FC = () => {
         .catch(err => {
           if(err instanceof ApiError) {
             toast.error(`Menu spesial gagal ditambahkan. Error ${err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         })
       });
@@ -122,7 +123,7 @@ const CulinaryForm: React.FC = () => {
         .catch(err => {
           if(err instanceof ApiError) {
             toast.error(`Galeri gagal ditambahkan. Error : ${err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         })
       });
@@ -151,7 +152,7 @@ const CulinaryForm: React.FC = () => {
     .catch(err => {
       if(err instanceof ApiError) {
         toast.error(`Kuliner gagal diperbarui. Error : ${err.message}`);
-        console.log(err.errors);
+        console.error(err.errors);
       }
     });
   }
@@ -346,7 +347,7 @@ const CulinaryForm: React.FC = () => {
               </label>
               {preview || id && image ? 
                 <img
-                  src={preview ? preview : `http://127.0.0.1:8000/storage/${image}`}
+                  src={preview ? preview : storageUrl(image as string)}
                   className='mb-4 w-64'
                 />
                 :
@@ -355,6 +356,7 @@ const CulinaryForm: React.FC = () => {
               <input
                 type="file"
                 name="image"
+                accept="image/jpeg,image/webp"
                 onChange={(e) => {
 
                   const target = e.target as HTMLInputElement & {
@@ -445,7 +447,7 @@ const CulinaryForm: React.FC = () => {
                           .catch(err => {
                             if(err instanceof ApiError) {
                               toast.error(`Menu spesial gagal diperbarui. Error : ${err.message}`);
-                              console.log(err.errors);
+                              console.error(err.errors);
                             }
                           })
                         }
@@ -469,7 +471,7 @@ const CulinaryForm: React.FC = () => {
                           }).catch(err => {
                             if(err instanceof ApiError) {
                               toast.error(`Menu spesial gagal dihapus. Error: ${err.message}`);
-                              console.log(err.errors);
+                              console.error(err.errors);
                             }
                           });
                         }
@@ -526,7 +528,7 @@ const CulinaryForm: React.FC = () => {
             return (
                   <div key={index} className="flex items-center justify-between gap-5 border border-1 border-gray-300 rounded-md mb-4 p-3">
                     <div className="flex gap-4 items-center">
-                      <img src={`http://127.0.0.1:8000/storage/${item.image}`} className="h-16 w-16 object-cover" alt="" />
+                      <img src={storageUrl(item.image)} className="h-16 w-16 object-cover" alt="" />
                       <span className='font-semibold'>{`Galeri ${index+1}`}</span>
                     </div>
                     <button
@@ -540,7 +542,7 @@ const CulinaryForm: React.FC = () => {
                         }).catch(err => {
                           if(err instanceof ApiError) {
                             toast.error(`Galeri gagal dihapus. Error : ${err.message}`);
-                            console.log(err.errors);
+                            console.error(err.errors);
                           }
                         });
                       }}
@@ -557,6 +559,7 @@ const CulinaryForm: React.FC = () => {
                 <div key={index} className="flex items-center space-x-2">
                   <input
                     type="file"
+                    accept="image/jpeg,image/webp"
                     onChange={(e) => {
                       const target = e.target as HTMLInputElement & {
                         files : FileList;

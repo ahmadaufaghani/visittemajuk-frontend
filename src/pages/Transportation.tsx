@@ -7,6 +7,7 @@ import { PuffLoader } from 'react-spinners';
 import { AdditionalInformation } from '../types/transportation';
 import { getAdditionalInformation } from '../services/transportationsApi';
 import { ApiError } from '../lib/api';
+import { storageUrl } from '../utils/storageUrl';
 
 const Transportation: React.FC = () => {
   const [openRoute, setOpenRoute] = useState<string | null>(null);
@@ -40,7 +41,7 @@ const Transportation: React.FC = () => {
     .catch((err) => {
       setErrorLoadingAddInfo("Data informasi tambahan belum dapat dimuat.");
       if(err instanceof ApiError) {
-        console.log(err.errors);
+        console.error(err.errors);
       }
     })
     .finally(()=>{
@@ -106,7 +107,7 @@ const Transportation: React.FC = () => {
                 >
                   <div className="flex items-center">
                     <img
-                      src={`http://127.0.0.1:8000/storage/${route.image}`}
+                      src={storageUrl(route.image)}
                       alt={route.title}
                       className="w-16 h-16 object-cover rounded-md mr-4"
                     />

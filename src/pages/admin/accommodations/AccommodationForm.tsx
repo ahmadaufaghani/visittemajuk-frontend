@@ -14,6 +14,7 @@ import {
 } from '../../../services/accommodationsApi';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const CATEGORY_OPTIONS = ['resort', 'wisma', 'bungalow', 'homestay', 'villa'];
 
@@ -31,7 +32,7 @@ const AccommodationForm: React.FC = () => {
   const { token } = useAuth();
 
   // Basic fields
-  const [idAccommodation, setIdAccommodation] = useState<string>('');
+  const [, setIdAccommodation] = useState<string>('');
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [fullDescription, setFullDescription] = useState<string>('');
@@ -92,7 +93,7 @@ const AccommodationForm: React.FC = () => {
         setIsLoading(false);
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         setIsLoading(false);
       });
   };
@@ -118,8 +119,6 @@ const AccommodationForm: React.FC = () => {
     formBody.append('description', description);
     formBody.append('fullDescription', fullDescription);
     if (image instanceof File) {
-      formBody.append('image', image);
-    } else if (typeof image === 'string') {
       formBody.append('image', image);
     }
     formBody.append('category', category);
@@ -181,7 +180,7 @@ const AccommodationForm: React.FC = () => {
           if (err instanceof ApiError) {
             const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
             toast.error(`Akomodasi gagal diperbarui. Error: ${firstError ?? err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
     } else {
@@ -195,7 +194,7 @@ const AccommodationForm: React.FC = () => {
           if (err instanceof ApiError) {
             const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
             toast.error(`Akomodasi gagal ditambahkan. Error: ${firstError ?? err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
     }
@@ -391,7 +390,7 @@ const AccommodationForm: React.FC = () => {
                 </label>
                 {(preview || (isEdit && image)) ? (
                   <img
-                    src={preview ? preview : `http://127.0.0.1:8000/storage/${image}`}
+                    src={preview ? preview : storageUrl(image as string)}
                     className="mb-4 w-64 rounded-md object-cover"
                     alt="Preview gambar utama"
                   />
@@ -399,6 +398,7 @@ const AccommodationForm: React.FC = () => {
                 <input
                   type="file"
                   name="image"
+                  accept="image/jpeg,image/webp"
                   onChange={(e) => {
                     const target = e.target as HTMLInputElement & { files: FileList };
                     setImage(target.files[0]);
@@ -601,7 +601,7 @@ const AccommodationForm: React.FC = () => {
                 >
                   <div className="flex gap-4 items-center">
                     <img
-                      src={`http://127.0.0.1:8000/storage/${item.image}`}
+                      src={storageUrl(item.image)}
                       className="h-16 w-16 object-cover rounded"
                       alt={`Galeri ${index + 1}`}
                     />
@@ -640,6 +640,7 @@ const AccommodationForm: React.FC = () => {
                   <div key={index} className="flex items-center space-x-2">
                     <input
                       type="file"
+                      accept="image/jpeg,image/webp"
                       onChange={(e) => {
                         const target = e.target as HTMLInputElement & { files: FileList };
                         handleGalleryChange(index, target.files[0]);
