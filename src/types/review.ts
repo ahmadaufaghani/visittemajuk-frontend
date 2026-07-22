@@ -1,4 +1,3 @@
-
 export interface Review {
     id: number,
     name: string,
@@ -15,13 +14,13 @@ export interface Review {
 export interface AddReview {
     name: string,
     text: string,
-    destination_id: number,
+    destination_slug: string,
     rating: number
 }
 
 export interface ReviewListParams {
   search?: string;
-  destination?: number;
+  destination?: string | number;
   rating?: number;
   page?: number;
   perPage?: number;
