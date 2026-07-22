@@ -5,6 +5,7 @@ import Slider from 'react-slick';
 import {Culinary} from "../types/culinary";
 import { getCulinary } from '../services/culinariesApi';
 import { useAuth } from '../contexts/authContextValue';
+import { storageUrl } from '../utils/storageUrl';
 
 const CulinaryDetail: React.FC = () => {
 
@@ -22,7 +23,7 @@ const CulinaryDetail: React.FC = () => {
       setDetailCulinary(res);
     }).catch((err) => {
       setError(true);
-      console.log(err);
+      console.error(err);
     }).finally(()=> {
       setIsLoading(false);
     });
@@ -55,7 +56,7 @@ const CulinaryDetail: React.FC = () => {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Kuliner tidak ditemukan</h2>
             <p className="text-gray-600 mb-6">
-              {error ?? 'Maaf, kuliner yang Anda cari tidak ditemukan.'}
+              Maaf, kuliner yang Anda cari tidak ditemukan.
             </p>
             <Link
               to={"/kuliner"}
@@ -74,7 +75,7 @@ const CulinaryDetail: React.FC = () => {
       {/* Hero Image */}
       <div
         className="w-full h-[50vh] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(http://127.0.0.1:8000/storage/${detailCulinary?.image})` }}
+        style={{ backgroundImage: `url(${storageUrl(detailCulinary?.image)})` }}
       >
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <div className="absolute bottom-0 left-0 w-full p-6">
@@ -142,7 +143,7 @@ const CulinaryDetail: React.FC = () => {
                 {detailCulinary?.culinary_galleries.map((item, index) => (
                   <div key={index} className="p-1">
                     <img
-                      src={`http://127.0.0.1:8000/storage/${item.image}`}
+                      src={storageUrl(item.image)}
                       alt={`${detailCulinary.title} - Gambar ${index + 1}`}
                       className="w-full h-64 md:h-96 object-cover rounded-lg"
                     />
@@ -212,11 +213,11 @@ const CulinaryDetail: React.FC = () => {
 
               <div className="mt-6">
                 <Link
-                  to={`${user.token && Number(id) ? "/admin/culinary" : "/kuliner"}`}
+                  to={user?.user?.role === 'admin' ? '/admin/culinary' : '/kuliner'}
                   className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow w-full justify-center transition-colors duration-300"
                 >
                   <ArrowLeft className="mr-2 h-5 w-5" />
-                  {user.token && Number(id) ? "Kembali ke Daftar Kuliner" : "Kembali ke Kuliner"}
+                  {user?.user?.role === 'admin' ? 'Kembali ke Daftar Kuliner' : 'Kembali ke Kuliner'}
                 </Link>
               </div>
             </div>

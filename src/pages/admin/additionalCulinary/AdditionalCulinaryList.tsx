@@ -8,6 +8,7 @@ import { ApiError } from '../../../lib/api';
 import { AdditionalCulinary } from '../../../types/culinary';
 import { useOverlay } from '../../../contexts/OverlayContext';
 import {Link} from 'react-router-dom';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const AdditionalCulinaryList: React.FC = () => {
 
@@ -26,7 +27,7 @@ const AdditionalCulinaryList: React.FC = () => {
   const getAdditionalCulinariesData = () => {
     setIsLoading(true);
     getAdditionalCulinaries().then(res => setAdditionalCulinaries(res))
-    .catch(err => console.log(err))
+    .catch(err => console.error(err))
     .finally(() => setIsLoading(false));
   }
 
@@ -52,7 +53,7 @@ const AdditionalCulinaryList: React.FC = () => {
     .catch(err =>{
       if(err instanceof ApiError) {
         toast.error(`Kuliner khas gagal ditambahkan. Error : ${err.message}`);
-        console.log(err.errors);
+        console.error(err.errors);
       }
       setIsLoading(false);
     });
@@ -81,7 +82,7 @@ const AdditionalCulinaryList: React.FC = () => {
     .catch(err =>{
       if(err instanceof ApiError) {
         toast.error(`Kuliner khas gagal diperbarui. Error : ${err.message}`);
-        console.log(err.errors);
+        console.error(err.errors);
       }
       setIsLoading(false);
     });
@@ -96,7 +97,7 @@ const AdditionalCulinaryList: React.FC = () => {
       .catch(err => {
         if(err instanceof ApiError) {
           toast.error(`Kuliner khas gagal dihapus. Error : ${err.message}`);
-          console.log(err.errors);
+          console.error(err.errors);
         }
         setIsLoading(false);
       });
@@ -127,7 +128,7 @@ const AdditionalCulinaryList: React.FC = () => {
         imageFile.current.type = "file";
       }
     }
-  },[overlay.statusDialogForm])
+  },[overlay.statusDialogForm]) // eslint-disable-line react-hooks/exhaustive-deps
  
   return (
     <>
@@ -171,7 +172,7 @@ const AdditionalCulinaryList: React.FC = () => {
               </label>
               {preview || id && image ? 
                 <img
-                  src={preview ? preview : `http://127.0.0.1:8000/storage/${image}`}
+                  src={preview ? preview : storageUrl(image as string)}
                   className='mb-4 w-32'
                 />
                 :
@@ -180,6 +181,7 @@ const AdditionalCulinaryList: React.FC = () => {
               <input
                   type="file"
                   name="image"
+                  accept="image/jpeg,image/webp"
                   ref={imageFile}
                   onChange={(e) => {
                       const target = e.target as HTMLInputElement & {
@@ -292,7 +294,7 @@ const AdditionalCulinaryList: React.FC = () => {
                       <div className="flex items-center">
                         <img
                           className="h-12 w-12 rounded-md object-cover"
-                          src={`http://127.0.0.1:8000/storage/${item.image}`}
+                          src={storageUrl(item.image)}
                           alt={item.title}
                         />
                         <div className="ml-4">

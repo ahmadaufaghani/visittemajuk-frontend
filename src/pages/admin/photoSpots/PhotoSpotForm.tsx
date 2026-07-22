@@ -13,6 +13,7 @@ import {
 import type { PhotoSpot, PhotoSpotGallery } from '../../../types/photoSpot';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const PhotoSpotForm: React.FC = () => {
   const { id } = useParams();
@@ -55,7 +56,7 @@ const PhotoSpotForm: React.FC = () => {
         setIsLoading(false);
       })
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         setIsLoading(false);
       });
   };
@@ -87,8 +88,6 @@ const PhotoSpotForm: React.FC = () => {
     formBody.append('full_description', fullDescription);
     if (image instanceof File) {
       formBody.append('image', image);
-    } else if (typeof image === 'string') {
-      formBody.append('image', image);
     }
     formBody.append('category', category);
     formBody.append('bestHour', bestHour);
@@ -119,7 +118,7 @@ const PhotoSpotForm: React.FC = () => {
         .catch((err) => {
           if (err instanceof ApiError) {
             toast.error(`Galeri gagal ditambahkan. Error: ${err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
     });
@@ -134,7 +133,7 @@ const PhotoSpotForm: React.FC = () => {
       .catch((err) => {
         if (err instanceof ApiError) {
           toast.error(`Galeri gagal dihapus. Error: ${err.message}`);
-          console.log(err.errors);
+          console.error(err.errors);
         }
       });
   };
@@ -167,7 +166,7 @@ const PhotoSpotForm: React.FC = () => {
           if (err instanceof ApiError) {
             const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
             toast.error(`Spot foto gagal diperbarui. Error: ${firstError ?? err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
     } else {
@@ -181,7 +180,7 @@ const PhotoSpotForm: React.FC = () => {
           if (err instanceof ApiError) {
             const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
             toast.error(`Spot foto gagal ditambahkan. Error: ${firstError ?? err.message}`);
-            console.log(err.errors);
+            console.error(err.errors);
           }
         });
     }
@@ -262,14 +261,14 @@ const PhotoSpotForm: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Gambar Utama *</label>
                   {preview || (isEdit && image) ? (
                     <img
-                      src={preview ? preview : `http://127.0.0.1:8000/storage/${image}`}
+                      src={preview ? preview : storageUrl(image as string)}
                       className="mb-4 w-40 h-28 object-cover rounded-md"
                       alt={title || 'Preview'}
                     />
                   ) : null}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/webp"
                     onChange={(e) => {
                       const target = e.target as HTMLInputElement & { files: FileList };
                       const file = target.files[0];
@@ -280,6 +279,7 @@ const PhotoSpotForm: React.FC = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                     required={id === undefined}
                   />
+                  <p className="text-xs text-gray-500 mt-1">Maks 1 MB. Format: JPG, JPEG, WebP.</p>
                 </div>
               </div>
 
@@ -387,7 +387,7 @@ const PhotoSpotForm: React.FC = () => {
                   {galleriesUpdate.map((gallery) => (
                     <div key={gallery.id} className="relative overflow-hidden rounded-lg border border-gray-200">
                       <img
-                        src={`http://127.0.0.1:8000/storage/${gallery.image}`}
+                        src={storageUrl(gallery.image)}
                         alt={`Galeri ${gallery.id}`}
                         className="h-44 w-full object-cover"
                       />
@@ -405,11 +405,11 @@ const PhotoSpotForm: React.FC = () => {
               )}
 
               <div className="space-y-4">
-                {galleries.map((gallery, index) => (
+                {galleries.map((_, index) => (
                   <div key={`gallery-${index}`} className="flex gap-3 items-start">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/webp"
                       onChange={(e) => {
                         const target = e.target as HTMLInputElement & { files: FileList };
                         const file = target.files[0];

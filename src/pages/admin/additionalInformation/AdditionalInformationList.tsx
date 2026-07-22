@@ -35,7 +35,7 @@ const AdditionalInformationList: React.FC = () => {
   const getAdditionalInformationData = () => {
     setIsLoading(true);
     getAdditionalInformation().then(res => setAdditionalInformation(res))
-    .catch(err => console.log(err))
+    .catch(err => console.error(err))
     .finally(() => setIsLoading(false));
   }
 
@@ -44,7 +44,7 @@ const AdditionalInformationList: React.FC = () => {
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
       type : type,
-      description: type === "paragraph" ? description : formattedList
+      description: type === "Paragraf" ? description : formattedList
     } 
     setIsLoading(true);
     createAdditionalInformation(addInfoBody, user.token as string)
@@ -58,7 +58,7 @@ const AdditionalInformationList: React.FC = () => {
     .catch(err =>{
       if(err instanceof ApiError) {
         toast.error(`Kuliner khas gagal ditambahkan. Error : ${err.message}`);
-        console.log(err.errors);
+        console.error(err.errors);
       }
       setIsLoading(false);
     });
@@ -69,7 +69,7 @@ const AdditionalInformationList: React.FC = () => {
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
       type : type,
-      description: type === "paragraph" ? description : formattedList
+      description: type === "Paragraf" ? description : formattedList
     } 
     setIsLoading(true);
     updateAdditionalInformation(id, addInfoBody, user.token as string)
@@ -85,7 +85,7 @@ const AdditionalInformationList: React.FC = () => {
     .catch(err =>{
       if(err instanceof ApiError) {
         toast.error(`Informasi tambahan gagal diperbarui. Error : ${err.message}`);
-        console.log(err.errors);
+        console.error(err.errors);
       }
       setIsLoading(false);
     });
@@ -100,7 +100,7 @@ const AdditionalInformationList: React.FC = () => {
       .catch(err => {
         if(err instanceof ApiError) {
           toast.error(`Informasi tambahan gagal dihapus. Error : ${err.message}`);
-          console.log(err.errors);
+          console.error(err.errors);
         }
         setIsLoading(false);
       });
@@ -127,7 +127,7 @@ const AdditionalInformationList: React.FC = () => {
       setDescription('');
       setType('');
     }
-    },[overlay.statusDialogForm])
+    },[overlay.statusDialogForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(()=>{
     getAdditionalInformationData();
@@ -175,11 +175,11 @@ const AdditionalInformationList: React.FC = () => {
               </label>
               <select required name="type" value={type} className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none" onChange={(e)=>setType(e.target.value)}>
                 <option value="">- Pilih Tipe Informasi -</option>
-                <option value="paragraph">Paragraf</option>
-                <option value="list">Daftar/List</option>
+                <option value="Paragraf">Paragraf</option>
+                <option value="Daftar/List">Daftar/List</option>
               </select>
             </div>
-            { type === 'paragraph' || type === '' 
+            { type === 'Paragraf' || type === '' 
                 ?
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -366,13 +366,13 @@ const AdditionalInformationList: React.FC = () => {
                       <div className="flex items-center">
                         <div className="ml-4">
                           
-                          {item.type === 'paragraph' && 
+                          {item.type === 'Paragraf' && 
                             <div className="text-sm text-gray-500 whitespace-pre-line text-justify">
                               {item.description}
                             </div>
                           }
 
-                          {item.type === "list" && 
+                          {item.type === "Daftar/List" && 
                             <ul className="text-sm list-disc pl-3 text-gray-500">
                               {item.description.split("\n").map((item,index) => {
                               return (
@@ -402,7 +402,7 @@ const AdditionalInformationList: React.FC = () => {
                             setId(item.id);
                             setTitle(item.title);
                             setType(item.type);
-                            if(item.type === "paragraph") {
+                            if(item.type === "Paragraf") {
                               setDescription(item.description);
                             } else {
                               setList(prev => [...prev, ...item.description.split("\n")]);
@@ -434,7 +434,7 @@ const AdditionalInformationList: React.FC = () => {
                         <tbody className="divide-y">
                           <tr className="divide-x">
                             <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>
-                            <td className="p-1">{item.type === 'paragraph' 
+                            <td className="p-1">{item.type === 'Paragraf' 
                               ? 
                               <div className="text-sm text-gray-500 whitespace-pre-line text-justify">
                                 {item.description}
@@ -459,7 +459,7 @@ const AdditionalInformationList: React.FC = () => {
                                     setId(item.id);
                                     setTitle(item.title);
                                     setType(item.type);
-                                    if(item.type === "paragraph") {
+                                    if(item.type === "Paragraf") {
                                       setDescription(item.description);
                                     } else {
                                       setList(prev => [...prev, ...item.description.split("\n")]);

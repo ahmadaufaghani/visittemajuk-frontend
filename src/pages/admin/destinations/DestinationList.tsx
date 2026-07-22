@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/authContextValue';
 import { useDestinations } from '../../../hooks/useDestinations';
 import { deleteDestination } from '../../../services/destinationsApi';
+import { storageUrl } from '../../../utils/storageUrl';
 import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -163,7 +164,7 @@ const DestinationList: React.FC = () => {
                   <td className="px-6 py-4">
                       <img
                         className="h-12 w-12 rounded-md object-cover"
-                        src={destination.imageUrl}
+                        src={storageUrl(destination.image)}
                         alt={destination.title}
                       />
                   </td>
@@ -200,6 +201,7 @@ const DestinationList: React.FC = () => {
                       </Link>
                       <Link
                         to={`/admin/destinations/edit/${destination.id}`}
+                        state={{ fromAdmin: true }}
                         className="text-indigo-600 hover:text-indigo-900 p-1"
                         title="Edit"
                       >

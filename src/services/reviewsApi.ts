@@ -28,7 +28,7 @@ function reviewListPath(path: string, params: ReviewListParams = {}): string {
     query.set('search', search);
   }
 
-  if (destination !== undefined) {
+  if (destination !== undefined && destination !== '') {
     query.set('destination', String(destination));
   }
 

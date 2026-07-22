@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Testimonial from '../components/Testimonial';
@@ -13,15 +13,17 @@ import { useReviews } from '../hooks/useReview';
 import dateFormatter from '../utils/dateFormatter';
 import toast from 'react-hot-toast';
 
+const ALL_DESTINATIONS = '';
+
 const Reviews: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDestination, setSelectedDestination] = useState<number | undefined>(undefined);
+  const [selectedDestinationSlug, setSelectedDestinationSlug] = useState<string>(ALL_DESTINATIONS);
   const [selectedRating, setSelectedRating] = useState<number | undefined>(undefined);
-  const [formName, setFormName] = useState<string>("");
-  const [formDestination, setFormDestination] = useState<number|undefined>(undefined);
-  const [formRating, setFormRating] = useState<number|undefined>(undefined);
-  const [formReviews, setFormReviews] = useState<string>("");
+  const [formName, setFormName] = useState<string>('');
+  const [formDestination, setFormDestination] = useState<string>('');
+  const [formRating, setFormRating] = useState<number | undefined>(undefined);
+  const [formReviews, setFormReviews] = useState<string>('');
   const [isLoadingReview, setIsLoadingReview] = useState<boolean>(false);
   const user = useAuth();
   const [page, setPage] = useState(1);
@@ -29,7 +31,7 @@ const Reviews: React.FC = () => {
   const { reload,reviews, meta, isLoading, error } = useReviews({
     params: {
       search: searchTerm,
-      destination: selectedDestination,
+      destination: selectedDestinationSlug || undefined,
       rating: selectedRating,
       page,
       perPage: 4,
@@ -45,8 +47,8 @@ const Reviews: React.FC = () => {
     setPage(1);
   };
 
-  const handleSearchDestination = (value: number) => {
-    setSelectedDestination(value);
+  const handleSearchDestination = (value: string) => {
+    setSelectedDestinationSlug(value);
     setPage(1);
   };
 
@@ -60,25 +62,53 @@ const Reviews: React.FC = () => {
     allPages: true,
   });
 
+  const destinationOptions = useMemo(
+    () => destinations.map((destination) => ({
+      slug: destination.id,
+      title: destination.title,
+    })),
+    [destinations],
+  );
+
   const addReviewData = async () => {
+    if (!user?.token) {
+      toast.error('Anda harus login terlebih dahulu.');
+      return;
+    }
+    if (!formName.trim()) {
+      toast.error('Nama wajib diisi.');
+      return;
+    }
+    if (!formDestination) {
+      toast.error('Pilih destinasi.');
+      return;
+    }
+    if (!formRating) {
+      toast.error('Pilih rating.');
+      return;
+    }
+    if (!formReviews.trim()) {
+      toast.error('Ulasan wajib diisi.');
+      return;
+    }
+
     try {
       setIsLoadingReview(true);
-      const addReviewData: AddReview = {
-        name: formName,
-        text: formReviews,
+      const payload: AddReview = {
+        name: formName.trim(),
+        text: formReviews.trim(),
         rating: Number(formRating),
-        destination_id : Number(formDestination)
-      }
-      await createReviews(addReviewData,user?.token as string)
-      .then(()=>{
-        toast.success("Ulasan berhasil ditambahkan.");
-      });
-      setFormName("");
-      setFormDestination(0);
-      setFormRating(0);
-      setFormReviews("");
-    } catch (err) {
-      console.log(err);
+        destination_slug: formDestination,
+      };
+      await createReviews(payload, user.token);
+      toast.success('Ulasan berhasil ditambahkan.');
+      setFormName('');
+      setFormDestination('');
+      setFormRating(undefined);
+      setFormReviews('');
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Ulasan belum dapat dikirim.';
+      toast.error(message);
     } finally {
       reload();
       setIsLoadingReview(false);
@@ -87,14 +117,9 @@ const Reviews: React.FC = () => {
 
   const clearFilters = () => {
     setSearchTerm('');
-    setSelectedDestination(0);
-    setSelectedRating(0);
-    reload();
+    setSelectedDestinationSlug(ALL_DESTINATIONS);
+    setSelectedRating(undefined);
   };
-
-  const apiDestinationOptions = destinations.map((destination) => destination.title);
-  const destinationOptions = [...new Set([...apiDestinationOptions])];
-
 
   return (
     <div>
@@ -128,15 +153,13 @@ const Reviews: React.FC = () => {
               <div className="w-full md:w-1/3">
                 <select
                   className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
-                  value={selectedDestination}
-                  onChange={(e) => {
-                    handleSearchDestination(Number(e.target.value));
-                  }}
+                  value={selectedDestinationSlug}
+                  onChange={(event) => handleSearchDestination(event.target.value)}
                 >
-                  <option value="">Semua Destinasi</option>
-                 {destinationOptions.map((dest,index) => (
-                    <option key={index} value={index+1}>
-                      {dest}
+                  <option value={ALL_DESTINATIONS}>Semua Destinasi</option>
+                  {destinationOptions.map((destination) => (
+                    <option key={destination.slug} value={destination.slug}>
+                      {destination.title}
                     </option>
                   ))}
                 </select>
@@ -148,12 +171,11 @@ const Reviews: React.FC = () => {
                   {[5, 4, 3, 2, 1].map((rating) => (
                     <button
                       key={rating}
+                      type="button"
                       className={`w-8 h-8 flex items-center justify-center rounded-full ${
                         selectedRating === rating ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
                       }`}
-                      onClick={() => {
-                        handleSearchRating(selectedRating === rating ? 0 : rating)}
-                      }
+                      onClick={() => handleSearchRating(rating)}
                     >
                       {rating}
                     </button>
@@ -192,10 +214,10 @@ const Reviews: React.FC = () => {
 
           {/* Reviews Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {!isLoading && !error && destinations.length > 0 && (
-            reviews?.map((review) => (
+          {!isLoading && !error && reviews.length > 0 && (
+            reviews.map((review) => (
               <Testimonial
-                key={`${review.destination.title}-${review.id}`}
+                key={`${review.destination?.title ?? 'review'}-${review.id}`}
                 name={review.name}
                 date={dateFormatter(review.created_at)}
                 rating={review.rating}
@@ -212,10 +234,10 @@ const Reviews: React.FC = () => {
                 <Compass className="h-10 w-10 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                {searchTerm || selectedDestination || selectedRating ? 'Ulasan tidak ditemukan' : "Tidak ada data ulasan"}
+                {searchTerm || selectedDestinationSlug || selectedRating ? 'Ulasan tidak ditemukan' : 'Tidak ada data ulasan'}
               </h3>
               <p className="text-gray-500 text-center max-w-md">
-                {searchTerm || selectedDestination || selectedRating ? 'Coba ubah kata kunci pencarian atau filter kategori maupun rating untuk menemukan ulasan lain.': "Tambahkan ulasan melalui formulir di bawah ini"}
+                {searchTerm || selectedDestinationSlug || selectedRating ? 'Coba ubah kata kunci pencarian atau filter destinasi maupun rating untuk menemukan ulasan lain.' : 'Tambahkan ulasan melalui formulir di bawah ini'}
               </p>
             </div>
           )}
@@ -281,11 +303,8 @@ const Reviews: React.FC = () => {
                   id="name"
                   placeholder="Nama Anda"
                   className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
-                  value={formName!}
-                  onChange={(e)=>{
-                    e.preventDefault();
-                    setFormName(e.target.value);
-                  }}
+                  value={formName}
+                  onChange={(event) => setFormName(event.target.value)}
                 />
               </div>
 
@@ -298,14 +317,14 @@ const Reviews: React.FC = () => {
                   className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
                   value={formDestination}
                   disabled={isLoadingDestinations}
-                  onChange={(e)=>setFormDestination(Number(e.target.value))}
+                  onChange={(event) => setFormDestination(event.target.value)}
                 >
                   <option value="">
                     {isLoadingDestinations ? 'Memuat destinasi...' : 'Pilih Destinasi'}
                   </option>
-                  {destinations.map((dest, index) => (
-                    <option key={index+1} value={index+1}>
-                      {dest.title}
+                  {destinationOptions.map((destination) => (
+                    <option key={destination.slug} value={destination.slug}>
+                      {destination.title}
                     </option>
                   ))}
                 </select>
@@ -329,7 +348,7 @@ const Reviews: React.FC = () => {
                 </div>
                 {formRating && formRating > 0 ? (
                   <p className="text-sm text-gray-600 mt-2">Rating: {formRating} bintang</p>
-                ) : ""}
+                ) : ''}
               </div>
 
               <div className="mb-4">
@@ -341,11 +360,8 @@ const Reviews: React.FC = () => {
                   rows={5}
                   placeholder="Ceritakan pengalaman Anda..."
                   className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
-                  value={formReviews!}
-                  onChange={(e)=> {
-                    e.preventDefault();
-                    setFormReviews(e.target.value);
-                  }}
+                  value={formReviews}
+                  onChange={(event) => setFormReviews(event.target.value)}
                 ></textarea>
               </div>
 

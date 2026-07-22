@@ -19,8 +19,6 @@ const emptyReviewsListMeta: ReviewListMeta = {
 
 interface UseReviewsOptions {
   params?: ReviewListParams;
-  admin?: boolean;
-  token?: string | null;
   enabled?: boolean;
   allPages?: boolean;
 }

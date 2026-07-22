@@ -3,6 +3,7 @@ import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
 import { useDestinations } from '../hooks/useDestinations';
+import { storageUrl } from '../utils/storageUrl';
 import { ChevronLeft, ChevronRight, Search, Compass } from 'lucide-react';
 
 const Destinations: React.FC = () => {
@@ -97,7 +98,7 @@ const Destinations: React.FC = () => {
                   id={destination.id}
                   title={destination.title}
                   description={destination.description}
-                  imageUrl={destination.imageUrl}
+                  imageUrl={storageUrl(destination.image)}
                   link="/destinasi"
                   category={destination.category}
                   price={destination.price}

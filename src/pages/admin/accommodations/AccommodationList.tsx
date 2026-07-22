@@ -5,6 +5,7 @@ import { useAccommodations } from '../../../hooks/useAccommodations';
 import { deleteAccommodation } from '../../../services/accommodationsApi';
 import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight, Hotel } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { storageUrl } from '../../../utils/storageUrl';
 
 const AccommodationList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,7 +162,7 @@ const AccommodationList: React.FC = () => {
                       <div className="flex items-center">
                         <img
                           className="h-12 w-12 rounded-md object-cover flex-shrink-0"
-                          src={`http://127.0.0.1:8000/storage/${accommodation.image}`}
+                          src={storageUrl(accommodation.image)}
                           alt={accommodation.title}
                         />
                         <div className="ml-4">

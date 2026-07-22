@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { getDestination } from '../services/destinationsApi';
-import type { Destination } from '../types/destination';
+import type { Destination, DestinationGalleryImage } from '../types/destination';
+import { storageUrl } from '../utils/storageUrl';
 import { MapPin, Clock, DollarSign, CornerDownRight, ArrowLeft } from 'lucide-react';
 import Slider from 'react-slick';
 
 const DestinationDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const isFromAdmin = (location.state as { fromAdmin?: boolean } | null)?.fromAdmin ?? false;
 
@@ -22,7 +23,7 @@ const DestinationDetail: React.FC = () => {
 
     window.scrollTo(0, 0);
 
-    if (!id) {
+    if (!slug) {
       setDestination(null);
       setIsLoading(false);
       return () => {
@@ -34,7 +35,7 @@ const DestinationDetail: React.FC = () => {
     setError(null);
     setDestination(null);
 
-    getDestination(id)
+    getDestination(slug)
       .then((loadedDestination) => {
         if (isActive) {
           setDestination(loadedDestination);
@@ -55,7 +56,7 @@ const DestinationDetail: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [id]);
+  }, [slug]);
 
   const sliderSettings = {
     dots: true,
@@ -96,12 +97,14 @@ const DestinationDetail: React.FC = () => {
     );
   }
 
+  const heroImageUrl = storageUrl(destination.image);
+  const galleries: DestinationGalleryImage[] = destination.galleries ?? [];
+
   return (
     <div className="min-h-screen pt-20">
-      {/* Hero Image */}
       <div
         className="w-full h-[50vh] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${destination.imageUrl})` }}
+        style={{ backgroundImage: `url(${heroImageUrl})` }}
       >
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         <div className="absolute bottom-0 left-0 w-full p-6">
@@ -116,10 +119,8 @@ const DestinationDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Main Content */}
           <div className="md:w-2/3">
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Tentang {destination.title}</h2>
@@ -177,16 +178,15 @@ const DestinationDetail: React.FC = () => {
               </ul>
             </div>
 
-            {/* Gallery */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Galeri</h2>
-              {destination.gallery.length > 0 ? (
+              {galleries.length > 0 ? (
                 <Slider {...sliderSettings} className="gallery-slider mb-6">
-                  {destination.gallery.map((image, index) => (
-                    <div key={index} className="p-1">
+                  {galleries.map((gallery) => (
+                    <div key={gallery.id} className="p-1">
                       <img
-                        src={image}
-                        alt={`${destination.title} - Gambar ${index + 1}`}
+                        src={storageUrl(gallery.image)}
+                        alt={`${destination.title} - Gambar ${gallery.sort_order + 1}`}
                         className="w-full h-64 md:h-96 object-cover rounded-lg"
                       />
                     </div>
@@ -198,23 +198,29 @@ const DestinationDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="md:w-1/3">
             <div className="bg-white p-6 rounded-lg shadow-md sticky top-24">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Lokasi</h3>
               <div className="aspect-video bg-gray-200 rounded-lg mb-6 overflow-hidden">
-                <a
-                  href="https://maps.app.goo.gl/tbM3tYfYxtNvBaYw5"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full h-full"
-                >
-                  <img
-                    src="/images/maps-pantai-temajuk.png"
-                    alt="Peta Lokasi Pantai Temajuk"
-                    className="w-full h-full object-cover"
-                  />
-                </a>
+                {destination.locationMap ? (
+                  <a
+                    href={destination.locationMap}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full h-full"
+                  >
+                    <img
+                      src="/images/maps-pantai-temajuk.png"
+                      alt={`Peta Lokasi ${destination.title}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <MapPin className="h-8 w-8 mr-2" />
+                    <span>Peta belum tersedia</span>
+                  </div>
+                )}
               </div>
 
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Informasi Lainnya</h3>

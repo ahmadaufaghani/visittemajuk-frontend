@@ -8,6 +8,7 @@ import { useCulinaries } from '../hooks/useCulinaries';
 import { AdditionalCulinary } from '../types/culinary';
 import { getAdditionalCulinaries } from '../services/culinariesApi';
 import { ApiError } from '../lib/api';
+import { storageUrl } from '../utils/storageUrl';
 
 const Culinary: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,7 +51,7 @@ const Culinary: React.FC = () => {
     .catch(err => {
       setErrorAddCulinary("Data kuliner khas belum dapat dimuat.")
       if(err instanceof ApiError) {
-        console.log(err.errors);
+        console.error(err.errors);
       }
     })
     .finally(()=> {
@@ -134,7 +135,7 @@ const Culinary: React.FC = () => {
                   id={String(item.slug)}
                   title={item.title}
                   description={item.description}
-                  imageUrl={`http://127.0.0.1:8000/storage/${item.image}`}
+                  imageUrl={storageUrl(item.image)}
                   link="/kuliner"
                   category={item.category}
                   price={item.price}
@@ -241,7 +242,7 @@ const Culinary: React.FC = () => {
               return (
                 <div key={item.id+"div"} className="bg-white p-6 rounded-lg shadow-md flex">
                   <img
-                    src={`http://127.0.0.1:8000/storage/${item.image}`}
+                    src={storageUrl(item.image)}
                     alt="Ikan Bakar Temajuk"
                     className="w-32 h-32 object-cover rounded-md mr-4"
                   />

@@ -13,6 +13,12 @@ interface AuthPayload {
   token: string;
 }
 
+export interface ChangePasswordPayload {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
 export async function loginRequest(username: string, password: string): Promise<AuthPayload> {
   const response = await apiRequest<AuthPayload>('/auth/login', {
     method: 'POST',
@@ -35,4 +41,15 @@ export async function getCurrentUser(token: string): Promise<AuthUser> {
   });
 
   return response.data;
+}
+
+export async function changePasswordRequest(
+  payload: ChangePasswordPayload,
+  token: string,
+): Promise<void> {
+  await apiRequest<null>('/auth/password', {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
 }
