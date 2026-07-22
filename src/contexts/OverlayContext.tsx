@@ -35,6 +35,7 @@ export const OverlayProvider = ({children}:{children:React.ReactNode}) => {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useOverlay = () => {
     const context = React.useContext(OverlayContext);
 	if (context === undefined) {
