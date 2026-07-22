@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
@@ -31,6 +30,9 @@ import PhotoSpotForm from './pages/admin/photoSpots/PhotoSpotForm';
 import TransportationList from './pages/admin/transportations/TransportationList';
 import TransportationForm from './pages/admin/transportations/TransportationForm';
 import AdditionalInformationList from './pages/admin/additionalInformation/AdditionalInformationList';
+import SiteSettingsPage from './pages/admin/Settings/SiteSettingsPage';
+import PhotographyTipList from './pages/admin/photographyTips/PhotographyTipList';
+import PhotographyTipForm from './pages/admin/photographyTips/PhotographyTipForm';
 
 function App() {
   return (
@@ -46,7 +48,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/destinasi" element={<Destinations />} />
-                  <Route path="/destinasi/:id" element={<DestinationDetail />} />
+                  <Route path="/destinasi/:slug" element={<DestinationDetail />} />
                   <Route path="/akomodasi" element={<Accommodations />} />
                   <Route path="/akomodasi/:id" element={<AccommodationDetail />} />
                   <Route path="/transportasi" element={<Transportation />} />
@@ -60,7 +62,7 @@ function App() {
               <Footer />
             </div>
           } />
-          
+
           {/* Admin Routes without Navbar and Footer */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/*" element={
@@ -71,7 +73,7 @@ function App() {
             <Route index element={<DestinationList />} />
             <Route path="destinations" element={<DestinationList />} />
             <Route path="destinations/add" element={<DestinationForm />} />
-            <Route path="destinations/edit/:id" element={<DestinationForm />} />
+            <Route path="destinations/edit/:slug" element={<DestinationForm />} />
             <Route path="accommodations" element={<AccommodationList />} />
             <Route path="accommodations/add" element={<AccommodationForm />} />
             <Route path="accommodations/edit/:id" element={<AccommodationForm />} />
@@ -82,10 +84,15 @@ function App() {
             <Route path="photo-spots" element={<PhotoSpotList />} />
             <Route path="photo-spots/add" element={<PhotoSpotForm />} />
             <Route path="photo-spots/edit/:id" element={<PhotoSpotForm />} />
+            <Route path="photo-spots/photography-tips" element={<PhotographyTipList />} />
+            <Route path="photo-spots/photography-tips/add" element={<PhotographyTipForm />} />
+            <Route path="photo-spots/photography-tips/edit/:id" element={<PhotographyTipForm />} />
             <Route path="transportations" element={<TransportationList />} />
             <Route path="transportations/information" element={<AdditionalInformationList />} />
             <Route path="transportations/add" element={<TransportationForm />} />
             <Route path="transportations/edit/:id" element={<TransportationForm />} />
+            <Route path="settings" element={<SiteSettingsPage />} />
+
           </Route>
         </Routes>
       </Router>

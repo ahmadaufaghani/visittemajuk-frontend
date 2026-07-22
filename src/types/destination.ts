@@ -1,20 +1,42 @@
+export interface DestinationGalleryImage {
+  id: number;
+  image: string;
+  sort_order: number;
+}
+
 export interface Destination {
   id: string;
   title: string;
   description: string;
   fullDescription: string;
-  imageUrl: string;
+  image: string;
   category: string;
   price: string;
   location: string;
+  locationMap: string | null;
   openHours: string;
   facilities: string[];
   activities: string[];
   tips: string[];
-  gallery: string[];
+  galleries: DestinationGalleryImage[];
 }
 
-export type DestinationPayload = Omit<Destination, 'id'>;
+export interface DestinationPayload {
+  title: string;
+  description: string;
+  fullDescription: string;
+  category: string;
+  price: string;
+  location: string;
+  locationMap?: string | null;
+  openHours: string;
+  facilities: string[];
+  activities: string[];
+  tips: string[];
+  image?: File | null;
+  gallery?: File[];
+  removedGalleryIds?: number[];
+}
 
 export interface DestinationListParams {
   search?: string;
