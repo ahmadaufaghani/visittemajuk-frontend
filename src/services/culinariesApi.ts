@@ -2,7 +2,6 @@
 import { apiRequest } from '../lib/api';
 import type {
   AdditionalCulinary,
-  AdditionalCulinaryList,
   AdditionalCulinaryPayload,
   Culinary,
   CulinaryListMeta,
