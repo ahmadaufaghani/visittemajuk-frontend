@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/authContextValue';
 import { MapPin, Lock, User, AlertCircle } from 'lucide-react';
@@ -9,7 +9,39 @@ const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const { login, isAuthenticated, isLoading } = useAuth();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (retryAfter === null || retryAfter <= 0) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    timerRef.current = setInterval(() => {
+      setRetryAfter((prev) => {
+        if (prev === null || prev <= 1) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [retryAfter]);
 
   if (isLoading) {
     return (
@@ -26,6 +58,7 @@ const AdminLogin: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setRetryAfter(null);
     setIsSubmitting(true);
 
     try {
@@ -35,6 +68,15 @@ const AdminLogin: React.FC = () => {
       }
     } catch (loginError) {
       if (loginError instanceof ApiError) {
+        if (loginError.status === 429) {
+          const retryAfterHeader = loginError.headers.get('Retry-After');
+          if (retryAfterHeader) {
+            const seconds = parseInt(retryAfterHeader, 10);
+            if (!isNaN(seconds) && seconds > 0) {
+              setRetryAfter(seconds);
+            }
+          }
+        }
         setError(loginError.message);
         return;
       }
@@ -64,6 +106,15 @@ const AdminLogin: React.FC = () => {
               <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
                 <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
                 <span className="text-red-700 text-sm">{error}</span>
+              </div>
+            )}
+
+            {retryAfter !== null && retryAfter > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 flex items-center">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                <span className="text-yellow-700 text-sm">
+                  Silakan tunggu <strong>{retryAfter} detik</strong> sebelum mencoba lagi.
+                </span>
               </div>
             )}
 
@@ -105,10 +156,10 @@ const AdminLogin: React.FC = () => {
 
               <button
                 type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (retryAfter !== null && retryAfter > 0)}
               className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Memproses...' : 'Login'}
+              {isSubmitting ? 'Memproses...' : retryAfter !== null && retryAfter > 0 ? `Tunggu ${retryAfter}s` : 'Login'}
             </button>
           </form>
 
