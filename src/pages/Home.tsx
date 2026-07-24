@@ -456,6 +456,8 @@ const Home: React.FC = () => {
             >
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
+                  id="newsletter-email"
+                  name="email"
                   type="email"
                   placeholder="Alamat Email Anda"
                   className="flex-grow px-4 py-3 rounded-md border-2 border-white focus:border-primary focus:outline-none"

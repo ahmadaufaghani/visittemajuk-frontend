@@ -122,7 +122,7 @@ export const photoSpots: PhotoSpot[] = [
     title: "Teluk Atong",
     description: "Pantai ini dikenal karena atong adalah orang pertama yang mendirikan penginapan di kawasan ini.",
     fullDescription: "Pantai ini dikenal karena atong adalah orang pertama yang mendirikan penginapan di kawasan ini, daerah yang dulunya paling ujung dan dekat dengan hutan lindung Tanjung Datuk. Sekarang semakin ramai karena jalur menuju atong bahari sudah menjadi jalur utama wisata Desa Temajuk. Karakteristik pantai ini sama dengan pantai Camar Bulan, namun perbedaannya adalah ketika surut batu karang akan terhampar luas didepan pantai dan ketika air pasang kita bisa melakukan snorkeling disekitar pantai ini.",
-    imageUrl: "https://jadesta.com/imgpost/35189.jpg",
+    imageUrl: "https://images.pexels.com/photos/2159538/pexels-photo-2159538.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
     category: "Teluk",
     location: "Kawasan Danau Laut Madu, Desa Temajuk, Kecamatan Paloh, Kabupaten Sambas",
     bestTime: "07.00 - 10.00 WIB dan 15.00 - 17.00 WIB",

@@ -3,6 +3,7 @@ import { useAuth } from '../../../contexts/authContextValue';
 import { useSiteSettings } from '../../../hooks/useSiteSettings';
 import { updateSiteSettings } from '../../../services/siteSettingsApi';
 import { storageUrl } from '../../../utils/storageUrl';
+import { showConfirm } from '../../../utils/confirm';
 import { Save, Upload, Edit, Plus, Trash2, X, Map, MapPin, Utensils, Camera, Compass, Bus, Bed } from 'lucide-react';
 import { useFooterSocials } from '../../../hooks/useFooterSocials';
 import {
@@ -235,8 +236,13 @@ const SiteSettingsPage: React.FC = () => {
   };
 
   const deleteFeature = (index: number) => {
-    if (!window.confirm('Hapus keunggulan ini?')) return;
-    setFeatures(features.filter((_, i) => i !== index));
+    showConfirm({
+      title: 'Hapus Keunggulan',
+      message: 'Hapus keunggulan ini?',
+      onConfirm: () => {
+        setFeatures(features.filter((_, i) => i !== index));
+      },
+    });
   };
 
   // --- Social CRUD ---
@@ -292,14 +298,19 @@ const SiteSettingsPage: React.FC = () => {
 
   const handleSocialDelete = async (id: number) => {
     if (!token) return;
-    if (!window.confirm('Hapus tautan media sosial ini?')) return;
-    try {
-      await deleteFooterSocial(id, token);
-      toast.success('Media sosial berhasil dihapus.');
-      await reloadSocials();
-    } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : 'Gagal menghapus.');
-    }
+    showConfirm({
+      title: 'Hapus Media Sosial',
+      message: 'Hapus tautan media sosial ini?',
+      onConfirm: async () => {
+        try {
+          await deleteFooterSocial(id, token);
+          toast.success('Media sosial berhasil dihapus.');
+          await reloadSocials();
+        } catch (caught) {
+          toast.error(caught instanceof Error ? caught.message : 'Gagal menghapus.');
+        }
+      },
+    });
   };
 
   return (

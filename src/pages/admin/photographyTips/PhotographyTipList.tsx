@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/authContextValue';
 import { getAdminPhotographyTips, deletePhotographyTip } from '../../../services/photographyTipsApi';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import { showConfirm } from '../../../utils/confirm';
 import { storageUrl } from '../../../utils/storageUrl';
 import type { PhotographyTip } from '../../../types/photographyTip';
 import { Plus, Edit, Trash2 } from 'lucide-react';
@@ -10,6 +12,7 @@ import toast from 'react-hot-toast';
 
 const PhotographyTipList: React.FC = () => {
   const { token } = useAuth();
+  const handleApiError = useApiErrorHandler();
   const [tips, setTips] = useState<PhotographyTip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,12 +24,13 @@ const PhotographyTipList: React.FC = () => {
     try {
       const result = await getAdminPhotographyTips(token);
       setTips(result);
-    } catch {
+    } catch (err) {
+      handleApiError(err);
       setError('Gagal memuat data tips fotografi.');
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, handleApiError]);
 
   useEffect(() => {
     void loadTips();
@@ -34,15 +38,19 @@ const PhotographyTipList: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     if (!token) return;
-    if (!window.confirm('Apakah Anda yakin ingin menghapus tips ini?')) return;
-
-    try {
-      await deletePhotographyTip(id, token);
-      toast.success('Tips fotografi berhasil dihapus.');
-      await loadTips();
-    } catch {
-      toast.error('Gagal menghapus tips fotografi.');
-    }
+    showConfirm({
+      title: 'Hapus Tips Fotografi',
+      message: 'Apakah Anda yakin ingin menghapus tips ini?',
+      onConfirm: async () => {
+        try {
+          await deletePhotographyTip(id, token);
+          toast.success('Tips fotografi berhasil dihapus.');
+          await loadTips();
+        } catch (err) {
+          handleApiError(err);
+        }
+      },
+    });
   };
 
   if (isLoading) {

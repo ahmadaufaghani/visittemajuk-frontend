@@ -4,7 +4,8 @@ import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit, Eye, Plus, Sea
 import toast from 'react-hot-toast';
 import { PuffLoader } from 'react-spinners';
 import { useAuth } from '../../../contexts/authContextValue';
-import { ApiError } from '../../../lib/api';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import { showConfirm } from '../../../utils/confirm';
 import { usePhotoSpots } from '../../../hooks/usePhotoSpots';
 import { deletePhotoSpot } from '../../../services/photoSpotsApi';
 import { storageUrl } from '../../../utils/storageUrl';
@@ -15,6 +16,7 @@ const PhotoSpotList: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const { token } = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   const { photoSpots, isLoading, error, reload, meta } = usePhotoSpots({
     admin: true,
@@ -29,19 +31,19 @@ const PhotoSpotList: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus spot foto ini?')) {
-      await deletePhotoSpot(id, token as string)
-        .then(() => {
+    showConfirm({
+      title: 'Hapus Spot Foto',
+      message: 'Apakah Anda yakin ingin menghapus spot foto ini?',
+      onConfirm: async () => {
+        try {
+          await deletePhotoSpot(id, token as string);
           toast.success('Spot foto berhasil dihapus.');
-        })
-        .catch((err) => {
-          if (err instanceof ApiError) {
-            toast.error(`Spot foto gagal dihapus. Error : ${err.message}`);
-            console.error(err.errors);
-          }
-        });
-      reload();
-    }
+          reload();
+        } catch (err) {
+          handleApiError(err);
+        }
+      },
+    });
   };
 
   const pagination = meta.pagination;

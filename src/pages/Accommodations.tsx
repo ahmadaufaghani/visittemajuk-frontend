@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
 import { useAccommodations } from '../hooks/useAccommodations';
+import { useDebounce } from '../hooks/useDebounce';
 import { storageUrl } from '../utils/storageUrl';
 import { ChevronLeft, ChevronRight, Search, Hotel } from 'lucide-react';
+import { PuffLoader } from 'react-spinners';
 
 const Accommodations: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const { accommodations, meta, isLoading, error } = useAccommodations({
     params: {
-      search: searchTerm,
+      search: debouncedSearch,
       category: selectedCategory,
       page,
       perPage: 9,
@@ -24,14 +29,30 @@ const Accommodations: React.FC = () => {
   const canGoToPreviousPage = pagination.current_page > 1;
   const canGoToNextPage = pagination.current_page < pagination.last_page;
 
+  const updateSearchParams = (updates: Record<string, string | number>) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, String(value));
+        } else {
+          newParams.delete(key);
+        }
+      });
+      return newParams;
+    }, { replace: true });
+  };
+
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setPage(1);
+    updateSearchParams({ search: value, page: '' });
   };
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
     setPage(1);
+    updateSearchParams({ category: value, page: '' });
   };
 
   const capitalize = (str: string) => {
@@ -57,6 +78,8 @@ const Accommodations: React.FC = () => {
           <div className="mb-10 mt-6 flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="relative w-full md:w-1/3">
               <input
+                id="search-accommodations"
+                name="search"
                 type="text"
                 placeholder="Cari akomodasi..."
                 className="w-full px-4 py-2 pl-10 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
@@ -68,6 +91,8 @@ const Accommodations: React.FC = () => {
 
             <div className="w-full md:w-auto">
               <select
+                id="category-accommodations"
+                name="category"
                 className="w-full md:w-auto px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
                 value={selectedCategory}
                 onChange={(e) => handleCategoryChange(e.target.value)}
@@ -84,6 +109,14 @@ const Accommodations: React.FC = () => {
 
           {isLoading && (
             <div className="text-center py-8">
+              <div className="flex justify-center">
+                <PuffLoader
+                  color={"#4B5563"}
+                  loading={isLoading}
+                  size={40}
+                  className="mb-6"
+                />
+              </div>
               <p className="text-gray-500 text-lg">Memuat akomodasi...</p>
             </div>
           )}
@@ -140,7 +173,11 @@ const Accommodations: React.FC = () => {
                   <button
                     type="button"
                     className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                    onClick={() => {
+                      const newPage = Math.max(1, page - 1);
+                      setPage(newPage);
+                      updateSearchParams({ page: newPage });
+                    }}
                     disabled={!canGoToPreviousPage}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -152,7 +189,11 @@ const Accommodations: React.FC = () => {
                   <button
                     type="button"
                     className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={() => setPage((currentPage) => currentPage + 1)}
+                    onClick={() => {
+                      const newPage = page + 1;
+                      setPage(newPage);
+                      updateSearchParams({ page: newPage });
+                    }}
                     disabled={!canGoToNextPage}
                   >
                     Berikutnya

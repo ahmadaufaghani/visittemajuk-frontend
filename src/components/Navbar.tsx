@@ -52,6 +52,7 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex space-x-8">
             <Link
               to="/"
+              aria-current={isActive('/') ? 'page' : undefined}
               className={`${
                 isActive('/') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -62,6 +63,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/destinasi"
+              aria-current={isActive(id ? `/destinasi/${id}` : '/destinasi') ? 'page' : undefined}
               className={`${
                 isActive(id ? `/destinasi/${id}` : '/destinasi')
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -72,6 +74,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/akomodasi"
+              aria-current={isActive(id ? `/akomodasi/${id}` : '/akomodasi') ? 'page' : undefined}
               className={`${
                 isActive(id ? `/akomodasi/${id}` : '/akomodasi') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -82,6 +85,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/transportasi"
+              aria-current={isActive('/transportasi') ? 'page' : undefined}
               className={`${
                 isActive('/transportasi') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -92,6 +96,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/kuliner"
+              aria-current={isActive(id ? `/kuliner/${id}` : '/kuliner') ? 'page' : undefined}
               className={`${
                 isActive(id ? `/kuliner/${id}` : '/kuliner') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -102,6 +107,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/foto"
+              aria-current={isActive('/foto') ? 'page' : undefined}
               className={`${
                 isActive('/foto') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -112,6 +118,7 @@ const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/ulasan"
+              aria-current={isActive('/ulasan') ? 'page' : undefined}
               className={`${
                 isActive('/ulasan') 
                   ? 'text-primary font-medium border-b-2 border-primary' 
@@ -143,6 +150,7 @@ const Navbar: React.FC = () => {
             <div className="px-2 pt-2 pb-3 space-y-1 bg-white rounded-md shadow-lg mt-2">
               <Link
                 to="/"
+                aria-current={isActive('/') ? 'page' : undefined}
                 className={`${
                   isActive('/') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
@@ -152,6 +160,7 @@ const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/destinasi"
+                aria-current={isActive(id ? `/destinasi/${id}` : '/destinasi') ? 'page' : undefined}
                 className={`${
                   isActive(id ? `/destinasi/${id}` : '/destinasi')  ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
@@ -161,6 +170,7 @@ const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/akomodasi"
+                aria-current={isActive(id ? `/akomodasi/${id}` : '/akomodasi') ? 'page' : undefined}
                 className={`${
                   isActive(id ? `/akomodasi/${id}` : '/akomodasi')  ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
@@ -170,6 +180,7 @@ const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/transportasi"
+                aria-current={isActive('/transportasi') ? 'page' : undefined}
                 className={`${
                   isActive('/transportasi') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
@@ -179,6 +190,7 @@ const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/kuliner"
+                aria-current={isActive(id ? `/kuliner/${id}` : '/kuliner') ? 'page' : undefined}
                 className={`${
                   isActive(id ? `/kuliner/${id}` : '/kuliner') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
@@ -188,6 +200,7 @@ const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/foto"
+                aria-current={isActive(id ? `/foto/${id}` : '/foto') ? 'page' : undefined}
                 className={`${
                   isActive(id ? `/foto/${id}` : '/foto') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}
@@ -197,6 +210,7 @@ const Navbar: React.FC = () => {
               </Link>
               <Link
                 to="/ulasan"
+                aria-current={isActive('/ulasan') ? 'page' : undefined}
                 className={`${
                   isActive('/ulasan') ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
                 } block px-3 py-2 rounded-md text-base font-medium`}

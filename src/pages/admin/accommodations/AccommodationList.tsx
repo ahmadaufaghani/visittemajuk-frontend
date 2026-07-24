@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/authContextValue';
 import { useAccommodations } from '../../../hooks/useAccommodations';
 import { deleteAccommodation } from '../../../services/accommodationsApi';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import { showConfirm } from '../../../utils/confirm';
 import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight, Hotel } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
@@ -13,6 +15,7 @@ const AccommodationList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const { token } = useAuth();
+  const handleApiError = useApiErrorHandler();
   const {
     accommodations,
     meta,
@@ -47,27 +50,31 @@ const AccommodationList: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus akomodasi ini?')) {
-      if (!token) {
-        setActionError('Sesi admin tidak valid.');
-        return;
-      }
-
-      setActionError(null);
-
-      try {
-        await deleteAccommodation(id, token);
-        toast.success('Akomodasi berhasil dihapus.');
-        if (accommodations.length === 1 && page > 1) {
-          setPage((currentPage) => Math.max(1, currentPage - 1));
-        } else {
-          await reload();
+    showConfirm({
+      title: 'Hapus Akomodasi',
+      message: 'Apakah Anda yakin ingin menghapus akomodasi ini?',
+      onConfirm: async () => {
+        if (!token) {
+          setActionError('Sesi admin tidak valid.');
+          return;
         }
-      } catch {
-        toast.error('Gagal menghapus akomodasi. Silakan coba lagi.');
-        setActionError('Akomodasi belum dapat dihapus.');
-      }
-    }
+
+        setActionError(null);
+
+        try {
+          await deleteAccommodation(id, token);
+          toast.success('Akomodasi berhasil dihapus.');
+          if (accommodations.length === 1 && page > 1) {
+            setPage((currentPage) => Math.max(1, currentPage - 1));
+          } else {
+            await reload();
+          }
+        } catch (err) {
+          handleApiError(err);
+          setActionError('Akomodasi belum dapat dihapus.');
+        }
+      },
+    });
   };
 
   return (

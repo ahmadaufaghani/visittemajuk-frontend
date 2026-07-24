@@ -33,12 +33,14 @@ export function setUnauthorizedHandler(handler: (() => void) | null): () => void
 export class ApiError extends Error {
   readonly status: number;
   readonly errors?: Record<string, string[]>;
+  readonly headers: Headers;
 
-  constructor(message: string, status: number, errors?: Record<string, string[]>) {
+  constructor(message: string, status: number, errors?: Record<string, string[]>, headers?: Headers) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
+    this.headers = headers ?? new Headers();
   }
 }
 
@@ -81,7 +83,7 @@ export async function apiRequest<T, M = unknown>(
   }
 
   if (!response.ok || !payload.success) {
-    throw new ApiError(payload.message, response.status, payload.errors);
+    throw new ApiError(payload.message, response.status, payload.errors, response.headers);
   }
 
   return payload;

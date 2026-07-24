@@ -64,11 +64,11 @@ export async function getReviews(
 
 export async function createReviews(
   payload: AddReview,
-  token: string
+  token?: string
 ): Promise<Review> {
   const response = await apiRequest<Review>('/reviews', {
     method: 'POST',
-    token,
+    token: token ?? null,
     body: payload,
   });
 

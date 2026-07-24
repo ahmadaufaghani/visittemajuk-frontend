@@ -6,6 +6,7 @@ import {Culinary} from "../types/culinary";
 import { getCulinary } from '../services/culinariesApi';
 import { useAuth } from '../contexts/authContextValue';
 import { storageUrl } from '../utils/storageUrl';
+import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
 
 const CulinaryDetail: React.FC = () => {
 
@@ -14,6 +15,7 @@ const CulinaryDetail: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const user = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -23,7 +25,7 @@ const CulinaryDetail: React.FC = () => {
       setDetailCulinary(res);
     }).catch((err) => {
       setError(true);
-      console.error(err);
+      handleApiError(err);
     }).finally(()=> {
       setIsLoading(false);
     });

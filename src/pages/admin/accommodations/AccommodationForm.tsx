@@ -12,6 +12,7 @@ import {
   getAccommodations,
   updateAccommodation,
 } from '../../../services/accommodationsApi';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
@@ -30,6 +31,7 @@ const AccommodationForm: React.FC = () => {
   const navigate = useNavigate();
   const isEdit = !!id;
   const { token } = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   // Basic fields
   const [, setIdAccommodation] = useState<string>('');
@@ -53,6 +55,7 @@ const AccommodationForm: React.FC = () => {
   const [galleriesUpdate, setGalleriesUpdate] = useState<AccommodationGallery[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [categories, setCategories] = useState<string[]>([]);
 
   // Load categories for select
@@ -115,26 +118,26 @@ const AccommodationForm: React.FC = () => {
   // Build FormData for main accommodation
   const buildFormData = (): FormData => {
     const formBody = new FormData();
-    formBody.append('title', title);
-    formBody.append('description', description);
-    formBody.append('fullDescription', fullDescription);
+    formBody.append('title', title.trim());
+    formBody.append('description', description.trim());
+    formBody.append('full_description', fullDescription.trim());
     if (image instanceof File) {
       formBody.append('image', image);
     }
-    formBody.append('category', category);
+    formBody.append('category', category.trim());
     formBody.append('minPrice', String(minPrice));
     formBody.append('maxPrice', String(maxPrice));
-    formBody.append('location', location);
-    formBody.append('location_map', locationMap);
-    formBody.append('contacs', contacs);
-    if (siteUrl) formBody.append('siteUrl', siteUrl);
+    formBody.append('location', location.trim());
+    formBody.append('location_map', locationMap.trim());
+    formBody.append('contacs', contacs.trim());
+    if (siteUrl.trim()) formBody.append('siteUrl', siteUrl.trim());
 
     const cleanedFacilities = facilities.map((f) => f.trim()).filter(Boolean);
     cleanedFacilities.forEach((f, i) => formBody.append(`facilities[${i}]`, f));
 
     roomTypes.forEach((rt, i) => {
-      formBody.append(`roomTypes[${i}][name]`, rt.name);
-      formBody.append(`roomTypes[${i}][description]`, rt.description);
+      formBody.append(`roomTypes[${i}][name]`, rt.name.trim());
+      formBody.append(`roomTypes[${i}][description]`, rt.description.trim());
       formBody.append(`roomTypes[${i}][capacity]`, String(rt.capacity));
       formBody.append(`roomTypes[${i}][price]`, String(rt.price));
     });
@@ -167,36 +170,24 @@ const AccommodationForm: React.FC = () => {
       return;
     }
 
+    setIsSaving(true);
     const formBody = buildFormData();
 
-    if (isEdit && id) {
-      updateAccommodation(id, formBody, token)
-        .then(() => {
-          toast.success('Akomodasi berhasil diperbarui.');
-          addGalleriesData(id);
-          navigate('/admin/accommodations', { replace: true });
-        })
-        .catch((err) => {
-          if (err instanceof ApiError) {
-            const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
-            toast.error(`Akomodasi gagal diperbarui. Error: ${firstError ?? err.message}`);
-            console.error(err.errors);
-          }
-        });
-    } else {
-      createAccommodation(formBody, token)
-        .then((res) => {
-          toast.success('Akomodasi berhasil ditambahkan.');
-          addGalleriesData(res.id);
-          navigate('/admin/accommodations', { replace: true });
-        })
-        .catch((err) => {
-          if (err instanceof ApiError) {
-            const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
-            toast.error(`Akomodasi gagal ditambahkan. Error: ${firstError ?? err.message}`);
-            console.error(err.errors);
-          }
-        });
+    try {
+      if (isEdit && id) {
+        await updateAccommodation(id, formBody, token);
+        toast.success('Akomodasi berhasil diperbarui.');
+        addGalleriesData(id);
+      } else {
+        const res = await createAccommodation(formBody, token);
+        toast.success('Akomodasi berhasil ditambahkan.');
+        addGalleriesData(res.id);
+      }
+      navigate('/admin/accommodations', { replace: true });
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -672,10 +663,11 @@ const AccommodationForm: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200"
+                disabled={isSaving}
+                className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isEdit ? 'Update' : 'Simpan'}
+                {isSaving ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
               </button>
             </div>
           </form>
