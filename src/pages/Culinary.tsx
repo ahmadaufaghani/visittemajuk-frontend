@@ -1,26 +1,31 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
 import { ChevronLeft, ChevronRight, Compass, PackageOpen, Search } from 'lucide-react';
 import { PuffLoader } from 'react-spinners';
 import { useCulinaries } from '../hooks/useCulinaries';
+import { useDebounce } from '../hooks/useDebounce';
 import { AdditionalCulinary } from '../types/culinary';
 import { getAdditionalCulinaries } from '../services/culinariesApi';
-import { ApiError } from '../lib/api';
 import { storageUrl } from '../utils/storageUrl';
+import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
 
 const Culinary: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [page, setPage] = useState<number>(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [page, setPage] = useState<number>(Number(searchParams.get('page')) || 1);
   const [additionalCulinaries, setAdditionalCulinaries] = useState<AdditionalCulinary[]>();
   const [isLoadingAddCulinary, setIsLoadingAddCulinary] = useState<boolean>(false);
   const [errorAddCulinary, setErrorAddCulinary] = useState<string>('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
+  const handleApiError = useApiErrorHandler();
 
   const {culinaries, meta, isLoading : isLoadingCulinary, error} = useCulinaries({ 
     params: {
-      search: searchTerm,
+      search: debouncedSearch,
       category: selectedCategory,
       page,
       perPage: 9,
@@ -32,14 +37,30 @@ const Culinary: React.FC = () => {
 
   const categories = [...new Set(meta.filters.categories.map(item =>item))];
 
+  const updateSearchParams = (updates: Record<string, string | number>) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, String(value));
+        } else {
+          newParams.delete(key);
+        }
+      });
+      return newParams;
+    }, { replace: true });
+  };
+
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setPage(1);
+    updateSearchParams({ search: value, page: '' });
   }
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
     setPage(1);
+    updateSearchParams({ category: value, page: '' });
   }
 
   useEffect(()=> {
@@ -50,9 +71,7 @@ const Culinary: React.FC = () => {
     })
     .catch(err => {
       setErrorAddCulinary("Data kuliner khas belum dapat dimuat.")
-      if(err instanceof ApiError) {
-        console.error(err.errors);
-      }
+      handleApiError(err);
     })
     .finally(()=> {
       setIsLoadingAddCulinary(false);
@@ -79,6 +98,8 @@ const Culinary: React.FC = () => {
           <div className="mb-10 mt-6 flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="relative w-full md:w-1/3">
               <input
+                id="search-culinary"
+                name="search"
                 type="text"
                 placeholder="Cari tempat makan..."
                 className="w-full px-4 py-2 pl-10 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
@@ -90,6 +111,8 @@ const Culinary: React.FC = () => {
 
             <div className="w-full md:w-auto">
               <select
+                id="category-culinary"
+                name="category"
                 className="w-full md:w-auto px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
                 value={selectedCategory}
                 onChange={(e) => handleCategoryChange(e.target.value)}
@@ -169,7 +192,11 @@ const Culinary: React.FC = () => {
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                  onClick={() => {
+                    const newPage = Math.max(1, page - 1);
+                    setPage(newPage);
+                    updateSearchParams({ page: newPage });
+                  }}
                   disabled={!canGoToPreviousPage}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -181,7 +208,11 @@ const Culinary: React.FC = () => {
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPage((currentPage) => currentPage + 1)}
+                  onClick={() => {
+                    const newPage = page + 1;
+                    setPage(newPage);
+                    updateSearchParams({ page: newPage });
+                  }}
                   disabled={!canGoToNextPage}
                 >
                   Berikutnya

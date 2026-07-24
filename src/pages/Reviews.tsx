@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Testimonial from '../components/Testimonial';
@@ -8,8 +9,9 @@ import avatar from '../assets/img/user.png'
 import { ClipLoader, PuffLoader } from 'react-spinners';
 import { AddReview} from '../types/review';
 import { createReviews } from '../services/reviewsApi';
-import { useAuth } from '../contexts/authContextValue';
 import { useReviews } from '../hooks/useReview';
+import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
+import { useDebounce } from '../hooks/useDebounce';
 import dateFormatter from '../utils/dateFormatter';
 import toast from 'react-hot-toast';
 
@@ -17,20 +19,22 @@ const ALL_DESTINATIONS = '';
 
 const Reviews: React.FC = () => {
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDestinationSlug, setSelectedDestinationSlug] = useState<string>(ALL_DESTINATIONS);
-  const [selectedRating, setSelectedRating] = useState<number | undefined>(undefined);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedDestinationSlug, setSelectedDestinationSlug] = useState<string>(searchParams.get('destination') || ALL_DESTINATIONS);
+  const [selectedRating, setSelectedRating] = useState<number | undefined>(Number(searchParams.get('rating')) || undefined);
   const [formName, setFormName] = useState<string>('');
   const [formDestination, setFormDestination] = useState<string>('');
   const [formRating, setFormRating] = useState<number | undefined>(undefined);
   const [formReviews, setFormReviews] = useState<string>('');
   const [isLoadingReview, setIsLoadingReview] = useState<boolean>(false);
-  const user = useAuth();
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
+  const handleApiError = useApiErrorHandler();
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   const { reload,reviews, meta, isLoading, error } = useReviews({
     params: {
-      search: searchTerm,
+      search: debouncedSearch,
       destination: selectedDestinationSlug || undefined,
       rating: selectedRating,
       page,
@@ -41,20 +45,37 @@ const Reviews: React.FC = () => {
   const pagination = meta.pagination;
   const canGoToPreviousPage = pagination.current_page > 1;
   const canGoToNextPage = pagination.current_page < pagination.last_page;
+
+  const updateSearchParams = (updates: Record<string, string | number>) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, String(value));
+        } else {
+          newParams.delete(key);
+        }
+      });
+      return newParams;
+    }, { replace: true });
+  };
   
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setPage(1);
+    updateSearchParams({ search: value, page: '' });
   };
 
   const handleSearchDestination = (value: string) => {
     setSelectedDestinationSlug(value);
     setPage(1);
+    updateSearchParams({ destination: value, page: '' });
   };
 
   const handleSearchRating = (value: number) => {
     setSelectedRating(value);
     setPage(1);
+    updateSearchParams({ rating: value, page: '' });
   };
 
   const { destinations, isLoading: isLoadingDestinations } = useDestinations({
@@ -71,10 +92,6 @@ const Reviews: React.FC = () => {
   );
 
   const addReviewData = async () => {
-    if (!user?.token) {
-      toast.error('Anda harus login terlebih dahulu.');
-      return;
-    }
     if (!formName.trim()) {
       toast.error('Nama wajib diisi.');
       return;
@@ -100,15 +117,14 @@ const Reviews: React.FC = () => {
         rating: Number(formRating),
         destination_slug: formDestination,
       };
-      await createReviews(payload, user.token);
+      await createReviews(payload);
       toast.success('Ulasan berhasil ditambahkan.');
       setFormName('');
       setFormDestination('');
       setFormRating(undefined);
       setFormReviews('');
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : 'Ulasan belum dapat dikirim.';
-      toast.error(message);
+      handleApiError(caught);
     } finally {
       reload();
       setIsLoadingReview(false);
@@ -140,6 +156,8 @@ const Reviews: React.FC = () => {
           <div className="mb-10 mt-6">
             <div className="relative mb-4">
               <input
+                id="search-reviews"
+                name="search"
                 type="text"
                 placeholder="Cari ulasan..."
                 className="w-full px-4 py-2 pl-10 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
@@ -152,6 +170,8 @@ const Reviews: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-4 items-center">
               <div className="w-full md:w-1/3">
                 <select
+                  id="destination-filter"
+                  name="destination"
                   className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
                   value={selectedDestinationSlug}
                   onChange={(event) => handleSearchDestination(event.target.value)}
@@ -254,7 +274,11 @@ const Reviews: React.FC = () => {
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                  onClick={() => {
+                    const newPage = Math.max(1, page - 1);
+                    setPage(newPage);
+                    updateSearchParams({ page: newPage });
+                  }}
                   disabled={!canGoToPreviousPage}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -266,7 +290,11 @@ const Reviews: React.FC = () => {
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() => setPage((currentPage) => currentPage + 1)}
+                  onClick={() => {
+                    const newPage = page + 1;
+                    setPage(newPage);
+                    updateSearchParams({ page: newPage });
+                  }}
                   disabled={!canGoToNextPage}
                 >
                   Berikutnya
@@ -367,7 +395,8 @@ const Reviews: React.FC = () => {
 
               <button
                 type="submit"
-                className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300"
+                disabled={isLoadingReview}
+                className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoadingReview ?
                 <>

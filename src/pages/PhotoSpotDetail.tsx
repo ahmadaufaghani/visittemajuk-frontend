@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/authContextValue';
 import { getPhotoSpot } from '../services/photoSpotsApi';
 import type { PhotoSpot } from '../types/photoSpot';
 import { storageUrl } from '../utils/storageUrl';
+import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
 
 const PhotoSpotDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ const PhotoSpotDetail: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const user = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -25,7 +27,7 @@ const PhotoSpotDetail: React.FC = () => {
       })
       .catch((err) => {
         setError(true);
-        console.error(err);
+        handleApiError(err);
       })
       .finally(() => {
         setIsLoading(false);

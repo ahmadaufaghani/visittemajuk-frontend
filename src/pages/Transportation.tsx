@@ -6,8 +6,8 @@ import { useTransportation } from '../hooks/useTransportations';
 import { PuffLoader } from 'react-spinners';
 import { AdditionalInformation } from '../types/transportation';
 import { getAdditionalInformation } from '../services/transportationsApi';
-import { ApiError } from '../lib/api';
 import { storageUrl } from '../utils/storageUrl';
+import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
 
 const Transportation: React.FC = () => {
   const [openRoute, setOpenRoute] = useState<string | null>(null);
@@ -15,6 +15,7 @@ const Transportation: React.FC = () => {
   const [additionalInformation, setAdditionalInformation] = useState<AdditionalInformation[]>();
   const [isLoadingAddInfo, setIsLoadingAddInfo] = useState<boolean>(false);
   const [errorAddInfo, setErrorLoadingAddInfo] = useState<string>('');
+  const handleApiError = useApiErrorHandler();
 
   const toggleRoute = (id: string) => {
     if (openRoute === id) {
@@ -40,9 +41,7 @@ const Transportation: React.FC = () => {
     })
     .catch((err) => {
       setErrorLoadingAddInfo("Data informasi tambahan belum dapat dimuat.");
-      if(err instanceof ApiError) {
-        console.error(err.errors);
-      }
+      handleApiError(err);
     })
     .finally(()=>{
       setIsLoadingAddInfo(false);

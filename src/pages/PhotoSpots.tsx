@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
@@ -6,14 +7,17 @@ import { Search } from 'lucide-react';
 import { PuffLoader } from 'react-spinners';
 import { usePhotoSpots } from '../hooks/usePhotoSpots';
 import { usePhotographyTips } from '../hooks/usePhotographyTips';
+import { useDebounce } from '../hooks/useDebounce';
 import { storageUrl } from '../utils/storageUrl';
 
 const PhotoSpots: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const { photoSpots, meta, isLoading, error } = usePhotoSpots({
     params: {
-      search: searchTerm,
+      search: debouncedSearch,
       category: selectedCategory,
       perPage: 9,
     },
@@ -21,6 +25,30 @@ const PhotoSpots: React.FC = () => {
   const { tips: photographyTips, isLoading: isLoadingTips } = usePhotographyTips();
 
   const categories = [...new Set(meta.filters.categories.map((category) => category))];
+
+  const updateSearchParams = (updates: Record<string, string | number>) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, String(value));
+        } else {
+          newParams.delete(key);
+        }
+      });
+      return newParams;
+    }, { replace: true });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    updateSearchParams({ search: value });
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    updateSearchParams({ category: value });
+  };
 
   return (
     <div>
@@ -41,20 +69,24 @@ const PhotoSpots: React.FC = () => {
           <div className="mb-10 mt-6 flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="relative w-full md:w-1/3">
               <input
+                id="search-photo-spots"
+                name="search"
                 type="text"
                 placeholder="Cari spot foto..."
                 className="w-full px-4 py-2 pl-10 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
 
             <div className="w-full md:w-auto">
               <select
+                id="category-photo-spots"
+                name="category"
                 className="w-full md:w-auto px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none"
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
               >
                 <option value="">Semua Kategori</option>
                 {categories.map((category) => (
