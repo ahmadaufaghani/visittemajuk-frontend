@@ -141,7 +141,6 @@ export async function updateDestination(
   token: string
 ): Promise<Destination> {
   const formData = buildDestinationFormData(payload);
-  formData.append('_method', 'PUT');
 
   const response = await apiRequest<Destination>(`/admin/destinations/${id}`, {
     method: 'POST',
