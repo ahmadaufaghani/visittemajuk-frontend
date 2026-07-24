@@ -10,7 +10,8 @@ import {
   getPhotoSpot,
   updatePhotoSpot,
 } from '../../../services/photoSpotsApi';
-import type { PhotoSpot, PhotoSpotGallery } from '../../../types/photoSpot';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import type { PhotoSpotGallery } from '../../../types/photoSpot';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
@@ -20,6 +21,7 @@ const PhotoSpotForm: React.FC = () => {
   const navigate = useNavigate();
   const isEdit = !!id;
   const { token } = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   const categoryOptions = ['Pantai', 'Alam', 'Pegunungan', 'Landmark', 'Teluk'];
 
@@ -37,6 +39,7 @@ const PhotoSpotForm: React.FC = () => {
   const [galleries, setGalleries] = useState<File[]>([]);
   const [galleriesUpdate, setGalleriesUpdate] = useState<PhotoSpotGallery[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const showPhotoSpot = async (photoSpotIdValue: string) => {
     setIsLoading(true);
@@ -83,16 +86,16 @@ const PhotoSpotForm: React.FC = () => {
 
   const buildFormBody = (): FormData => {
     const formBody = new FormData();
-    formBody.append('title', title);
-    formBody.append('description', description);
-    formBody.append('full_description', fullDescription);
+    formBody.append('title', title.trim());
+    formBody.append('description', description.trim());
+    formBody.append('full_description', fullDescription.trim());
     if (image instanceof File) {
       formBody.append('image', image);
     }
-    formBody.append('category', category);
-    formBody.append('bestHour', bestHour);
-    formBody.append('location', location);
-    formBody.append('location_map', locationMap);
+    formBody.append('category', category.trim());
+    formBody.append('bestHour', bestHour.trim());
+    formBody.append('location', location.trim());
+    formBody.append('location_map', locationMap.trim());
     appendArrayField(
       formBody,
       'nearestAttraction',
@@ -138,7 +141,7 @@ const PhotoSpotForm: React.FC = () => {
       });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const cleanedNearestAttraction = nearestAttraction.map((value) => value.trim()).filter(Boolean);
@@ -153,36 +156,24 @@ const PhotoSpotForm: React.FC = () => {
       return;
     }
 
+    setIsSaving(true);
     const formBody = buildFormBody();
 
-    if (isEdit && id) {
-      updatePhotoSpot(id, formBody, token)
-        .then(() => {
-          toast.success('Spot foto berhasil diperbarui.');
-          addGalleriesData(photoSpotId);
-          navigate('/admin/photo-spots', { replace: true });
-        })
-        .catch((err) => {
-          if (err instanceof ApiError) {
-            const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
-            toast.error(`Spot foto gagal diperbarui. Error: ${firstError ?? err.message}`);
-            console.error(err.errors);
-          }
-        });
-    } else {
-      createPhotoSpot(formBody, token)
-        .then((res: PhotoSpot) => {
-          toast.success('Spot foto berhasil ditambahkan.');
-          addGalleriesData(res.id);
-          navigate('/admin/photo-spots', { replace: true });
-        })
-        .catch((err) => {
-          if (err instanceof ApiError) {
-            const firstError = err.errors ? Object.values(err.errors).flat()[0] : undefined;
-            toast.error(`Spot foto gagal ditambahkan. Error: ${firstError ?? err.message}`);
-            console.error(err.errors);
-          }
-        });
+    try {
+      if (isEdit && id) {
+        await updatePhotoSpot(id, formBody, token);
+        toast.success('Spot foto berhasil diperbarui.');
+        addGalleriesData(photoSpotId);
+      } else {
+        const res = await createPhotoSpot(formBody, token);
+        toast.success('Spot foto berhasil ditambahkan.');
+        addGalleriesData(res.id);
+      }
+      navigate('/admin/photo-spots', { replace: true });
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -441,9 +432,10 @@ const PhotoSpotForm: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
+                disabled={isSaving}
+                className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isEdit ? 'Edit Spot Foto' : 'Tambah Spot Foto'}
+                {isSaving ? 'Menyimpan...' : isEdit ? 'Edit Spot Foto' : 'Tambah Spot Foto'}
               </button>
             </div>
           </form>

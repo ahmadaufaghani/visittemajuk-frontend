@@ -13,6 +13,7 @@ import { getTransportation, createTransportation, updateTransportation, createSt
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 
 const TransportationForm: React.FC = () => {
 
@@ -20,6 +21,7 @@ const TransportationForm: React.FC = () => {
   const navigate = useNavigate();
   const isEdit = !!id;
   const user = useAuth();
+  const handleApiError = useApiErrorHandler();
   const [idTransportation, setIdTransportation] = useState<number>(0);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -32,6 +34,7 @@ const TransportationForm: React.FC = () => {
   const [stepsUpdate, setStepsUpdate] = useState<TransportationSteps[]>([]);
   const [tipsUpdate, setTipsUpdate] = useState<TransportationTips[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
   const [editStepsId, setEditStepsId] = useState<number>(0);
   const [editTipsId, setEditTipsId] = useState<number>(0);
@@ -53,7 +56,7 @@ const TransportationForm: React.FC = () => {
         setTipsUpdate(res.transportation_tips);
         setIsLoading(false);
       }).catch(err => {
-        console.error(err);
+        handleApiError(err);
       });
   }
 
@@ -65,12 +68,12 @@ const TransportationForm: React.FC = () => {
 
   const addTransportationData = async () => {
       const formBody = new FormData();
-      formBody.append("title",title);
-      formBody.append("description",description);
-      formBody.append("image",image!);
-      formBody.append("difficulty", difficulty);
-      formBody.append("estimated_cost", estimatedCost);
-      formBody.append("estimated_time", estimatedTime);
+      formBody.append("title", title.trim());
+      formBody.append("description", description.trim());
+      formBody.append("image", image!);
+      formBody.append("difficulty", difficulty.trim());
+      formBody.append("estimated_cost", estimatedCost.trim());
+      formBody.append("estimated_time", estimatedTime.trim());
 
       createTransportation(formBody,user.token as string)
       .then((res: Transportation ) => {
@@ -89,7 +92,13 @@ const TransportationForm: React.FC = () => {
 
   const addStepsData = (id: number) => {
       steps.map(async (val) => {
-        createSteps({description: val.description, duration: val.duration, cost: val.cost, vehicle: val.vehicle, transportation_id: id}, user.token as string)
+        createSteps({
+          description: val.description.trim(),
+          duration: val.duration.trim(),
+          cost: val.cost.trim(),
+          vehicle: val.vehicle.trim(),
+          transportation_id: id
+        }, user.token as string)
         .then(()=> {
           toast.success("Langkah baru berhasil ditambahkan.");
         })
@@ -104,7 +113,7 @@ const TransportationForm: React.FC = () => {
 
   const addTipsData = (id: number) => {
       tips.map(async (val) => {
-        createTips({tip: val, transportation_id: id}, user.token as string)
+        createTips({tip: val.trim(), transportation_id: id}, user.token as string)
         .then(()=> {
            toast.success("Tips baru berhasil ditambahkan.");
         })
@@ -120,12 +129,12 @@ const TransportationForm: React.FC = () => {
 
   const updateTransportationData = async (id : number) => {
     const formBody = new FormData();
-    formBody.append("title",title);
-      formBody.append("description",description);
-      formBody.append("image",image!);
-      formBody.append("difficulty", difficulty);
-      formBody.append("estimated_cost", estimatedCost);
-      formBody.append("estimated_time", estimatedTime);
+    formBody.append("title", title.trim());
+      formBody.append("description", description.trim());
+      formBody.append("image", image!);
+      formBody.append("difficulty", difficulty.trim());
+      formBody.append("estimated_cost", estimatedCost.trim());
+      formBody.append("estimated_time", estimatedTime.trim());
 
     updateTransportation(id, formBody, user.token as string)
     .then(() => {
@@ -134,7 +143,7 @@ const TransportationForm: React.FC = () => {
         addTipsData(idTransportation);
       })
     .catch(err => {
-      console.error(err);
+      handleApiError(err);
     });
   }
 
@@ -170,14 +179,18 @@ const TransportationForm: React.FC = () => {
   };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(id) {
-      updateTransportationData(Number(id));    
+    setIsSaving(true);
+    try {
+      if(id) {
+        await updateTransportationData(Number(id));
+      } else {
+        await addTransportationData();
+      }
       navigate('/admin/transportations', {replace : true});
-    } else {
-      addTransportationData();
-      navigate('/admin/transportations', {replace : true});
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -627,7 +640,7 @@ const TransportationForm: React.FC = () => {
                           .then(() => {
                             showTransportation(Number(id));
                           }).catch(err => {
-                            console.error(err);
+                            handleApiError(err);
                           });
                         }
                       }}
@@ -675,10 +688,11 @@ const TransportationForm: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200"
+              disabled={isSaving}
+              className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isEdit ? 'Update' : 'Simpan'}
+              {isSaving ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
             </button>
           </div>
         </form>

@@ -7,9 +7,9 @@ import {
   getDestinations,
   updateDestination,
 } from '../../../services/destinationsApi';
-import { ApiError } from '../../../lib/api';
 import type { DestinationPayload, DestinationGalleryImage } from '../../../types/destination';
 import { storageUrl } from '../../../utils/storageUrl';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 import { Save, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -52,6 +52,7 @@ const DestinationForm: React.FC = () => {
   const [removedGalleryIds, setRemovedGalleryIds] = useState<number[]>([]);
 
   const [formData, setFormData] = useState<DestinationPayload>(emptyFormData);
+  const handleApiError = useApiErrorHandler();
 
   useEffect(() => {
     let isActive = true;
@@ -205,6 +206,14 @@ const DestinationForm: React.FC = () => {
 
   const destinationPayload = (): DestinationPayload => ({
     ...formData,
+    title: formData.title.trim(),
+    description: formData.description.trim(),
+    fullDescription: formData.fullDescription.trim(),
+    category: formData.category.trim(),
+    price: formData.price.trim(),
+    location: formData.location.trim(),
+    locationMap: formData.locationMap.trim(),
+    openHours: formData.openHours.trim(),
     facilities: cleanItems(formData.facilities),
     activities: cleanItems(formData.activities),
     tips: cleanItems(formData.tips),
@@ -239,19 +248,8 @@ const DestinationForm: React.FC = () => {
 
       navigate('/admin/destinations');
     } catch (saveError) {
-      if (saveError instanceof ApiError) {
-        const firstError = saveError.errors
-          ? Object.values(saveError.errors).flat()[0]
-          : undefined;
-
-        const message = firstError ?? saveError.message;
-        setError(message);
-        toast.error(message);
-        return;
-      }
-
-      setError('Destinasi belum dapat disimpan.');
-      toast.error('Gagal menyimpan destinasi. Silakan coba lagi.');
+      handleApiError(saveError);
+      setError('Gagal menyimpan destinasi.');
     } finally {
       setIsSaving(false);
     }

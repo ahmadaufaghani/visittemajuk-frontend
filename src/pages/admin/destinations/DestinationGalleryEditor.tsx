@@ -7,6 +7,7 @@ import {
 } from '../../../services/destinationsApi';
 import type { DestinationGalleryImage } from '../../../types/destination';
 import { storageUrl } from '../../../utils/storageUrl';
+import { showConfirm } from '../../../utils/confirm';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -66,17 +67,20 @@ const DestinationGalleryEditor: React.FC<DestinationGalleryEditorProps> = ({
     if (!token) {
       return;
     }
-    if (!window.confirm('Hapus gambar ini dari galeri?')) {
-      return;
-    }
-    try {
-      await deleteDestinationGallery(galleryId, token);
-      toast.success('Gambar berhasil dihapus.');
-      await refresh();
-    } catch (caught) {
-      const message = caught instanceof Error ? caught.message : 'Gambar belum dapat dihapus.';
-      toast.error(message);
-    }
+    showConfirm({
+      title: 'Hapus Gambar',
+      message: 'Hapus gambar ini dari galeri?',
+      onConfirm: async () => {
+        try {
+          await deleteDestinationGallery(galleryId, token);
+          toast.success('Gambar berhasil dihapus.');
+          await refresh();
+        } catch (caught) {
+          const message = caught instanceof Error ? caught.message : 'Gambar belum dapat dihapus.';
+          toast.error(message);
+        }
+      },
+    });
   };
 
   return (

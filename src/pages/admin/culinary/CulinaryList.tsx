@@ -5,8 +5,9 @@ import { useAuth } from '../../../contexts/authContextValue';
 import { PuffLoader } from "react-spinners";
 import { useCulinaries } from '../../../hooks/useCulinaries';
 import { deleteCulinary } from '../../../services/culinariesApi';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import { showConfirm } from '../../../utils/confirm';
 import toast from 'react-hot-toast';
-import { ApiError } from '../../../lib/api';
 import { storageUrl } from '../../../utils/storageUrl';
 
 const CulinaryList: React.FC = () => {
@@ -15,6 +16,7 @@ const CulinaryList: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const user = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   const {culinaries, isLoading: isLoadingCulinary, error, reload, meta} = useCulinaries({params:{
     search : searchTerm,
@@ -24,19 +26,19 @@ const CulinaryList: React.FC = () => {
   }});
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus tempat kuliner ini?')) {
-      await deleteCulinary(id,user.token as string)
-      .then(()=>{
-        toast.success("Kuliner berhasil dihapus.")
-      })
-      .catch(err => {
-        if(err instanceof ApiError) {
-          toast.error(`Kuliner gagal dihapus. Error : ${err.message}`);
-          console.error(err.errors);
+    showConfirm({
+      title: 'Hapus Kuliner',
+      message: 'Apakah Anda yakin ingin menghapus tempat kuliner ini?',
+      onConfirm: async () => {
+        try {
+          await deleteCulinary(id, user.token as string);
+          toast.success("Kuliner berhasil dihapus.");
+          reload();
+        } catch (err) {
+          handleApiError(err);
         }
-      });
-      reload();
-    }
+      },
+    });
   };
 
   const pagination = meta.pagination;

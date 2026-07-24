@@ -5,13 +5,13 @@ import { useAuth } from '../../../contexts/authContextValue';
 import type {
   Specialty,
   Gallery,
-  Culinary,
 } from '../../../types/culinary';
 import { ApiError } from '../../../lib/api';
 import { createCulinary, createGallery, createSpeciality, deleteGallery, deleteSpeciality, getCulinary, updateCulinary, updateSpeciality } from '../../../services/culinariesApi';
 import { PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 
 const CulinaryForm: React.FC = () => {
 
@@ -19,6 +19,7 @@ const CulinaryForm: React.FC = () => {
   const navigate = useNavigate();
   const isEdit = !!id;
   const user = useAuth();
+  const handleApiError = useApiErrorHandler();
   const [idCulinary, setIdCulinary] = useState<number>(0);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -35,6 +36,7 @@ const CulinaryForm: React.FC = () => {
   const [specialtiesUpdate, setSpecialitiesUpdate] = useState<Specialty[]>([]);
   const [galleriesUpdate, setGalleriesUpdate] = useState<Gallery[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
   const [editSpecialtyId, setEditSpecialtyId] = useState<number>(0);
   const categories = ['Seafood', 'Indonesia', 'Kafe', 'Lokal', 'Tradisional'];
@@ -58,7 +60,7 @@ const CulinaryForm: React.FC = () => {
         setGalleriesUpdate(res.culinary_galleries);
         setIsLoading(false);
       }).catch(err => {
-        console.error(err);
+        handleApiError(err);
       })
   }
 
@@ -70,30 +72,21 @@ const CulinaryForm: React.FC = () => {
 
   const addCulinaryData = async () => {
       const formBody = new FormData();
-      formBody.append("title",title);
-      formBody.append("description",description);
-      formBody.append("full_description",fullDescription);
-      formBody.append("image",image!);
-      formBody.append("category",category);
-      formBody.append("price",price);
-      formBody.append("location",location);
-      formBody.append("location_map",locationMap);
-      formBody.append("open_hours",openHours);
-      formBody.append("contact",contact);
+      formBody.append("title", title.trim());
+      formBody.append("description", description.trim());
+      formBody.append("full_description", fullDescription.trim());
+      formBody.append("image", image!);
+      formBody.append("category", category.trim());
+      formBody.append("price", price.trim());
+      formBody.append("location", location.trim());
+      formBody.append("location_map", locationMap.trim());
+      formBody.append("open_hours", openHours.trim());
+      formBody.append("contact", contact.trim());
 
-      createCulinary(formBody,user.token as string)
-      .then((res: Culinary ) => {
-        toast.success("Kuliner berhasil ditambahkan.")
-        addSpecialtiesData(res.id);
-        addGalleriesData(res.id);
-      })
-      .catch(err => {
-        if(err instanceof ApiError) {
-          toast.error(`Kuliner gagal ditambahkan. Error : ${err.message}`);
-          console.error(err.errors);
-        }
-      });
-
+      const res = await createCulinary(formBody, user.token as string);
+      toast.success("Kuliner berhasil ditambahkan.");
+      addSpecialtiesData(res.id);
+      addGalleriesData(res.id);
   }
 
   const addSpecialtiesData = (id: number) => {
@@ -132,29 +125,21 @@ const CulinaryForm: React.FC = () => {
 
   const updateCulinaryData = async (id : number) => {
     const formBody = new FormData();
-    formBody.append("title",title);
-    formBody.append("description",description);
-    formBody.append("full_description",fullDescription);
-    formBody.append("image",image!);
-    formBody.append("category",category);
-    formBody.append("price",price);
-    formBody.append("location",location);
-    formBody.append("location_map",locationMap);
-    formBody.append("open_hours",openHours);
-    formBody.append("contact",contact);
+    formBody.append("title", title.trim());
+    formBody.append("description", description.trim());
+    formBody.append("full_description", fullDescription.trim());
+    formBody.append("image", image!);
+    formBody.append("category", category.trim());
+    formBody.append("price", price.trim());
+    formBody.append("location", location.trim());
+    formBody.append("location_map", locationMap.trim());
+    formBody.append("open_hours", openHours.trim());
+    formBody.append("contact", contact.trim());
 
-    updateCulinary(id, formBody, user.token as string)
-    .then(() => {
-      toast.success("Kuliner berhasil diperbarui.");
-      addSpecialtiesData(idCulinary);
-      addGalleriesData(idCulinary);
-      })
-    .catch(err => {
-      if(err instanceof ApiError) {
-        toast.error(`Kuliner gagal diperbarui. Error : ${err.message}`);
-        console.error(err.errors);
-      }
-    });
+    await updateCulinary(id, formBody, user.token as string);
+    toast.success("Kuliner berhasil diperbarui.");
+    addSpecialtiesData(idCulinary);
+    addGalleriesData(idCulinary);
   }
 
   const addArrayItemSpecialties = () => {
@@ -184,14 +169,18 @@ const CulinaryForm: React.FC = () => {
     setGalleries(galleries.filter((_, i) => i != index));
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(id) {
-      updateCulinaryData(Number(id));    
+    setIsSaving(true);
+    try {
+      if(id) {
+        await updateCulinaryData(Number(id));
+      } else {
+        await addCulinaryData();
+      }
       navigate('/admin/culinary', {replace : true});
-    } else {
-      addCulinaryData();
-      navigate('/admin/culinary', {replace : true});
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -593,10 +582,11 @@ const CulinaryForm: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200"
+              disabled={isSaving}
+              className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isEdit ? 'Update' : 'Simpan'}
+              {isSaving ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
             </button>
           </div>
           </form>

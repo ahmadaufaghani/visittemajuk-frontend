@@ -4,10 +4,10 @@ import { useAuth } from '../../../contexts/authContextValue';
 import { PuffLoader } from "react-spinners";
 import { createAdditionalInformation, deleteAdditionalInformation, getAdditionalInformation, updateAdditionalInformation } from '../../../services/transportationsApi';
 import toast from 'react-hot-toast';
-import { ApiError } from '../../../lib/api';
 import { useOverlay } from '../../../contexts/OverlayContext';
 import { Link } from 'react-router-dom';
 import { AdditionalInformation, AdditionalInformationPayload } from '../../../types/transportation';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 
 const AdditionalInformationList: React.FC = () => {
   const [additionalInformation, setAdditionalInformation] = useState<AdditionalInformation[]>([]);
@@ -20,6 +20,7 @@ const AdditionalInformationList: React.FC = () => {
   const [list, setList] = useState<string[]>([]);
   const [selectedRow, setSelectedRow] = useState<number>(0);
   const overlay = useOverlay();
+  const handleApiError = useApiErrorHandler();
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -35,11 +36,11 @@ const AdditionalInformationList: React.FC = () => {
   const getAdditionalInformationData = () => {
     setIsLoading(true);
     getAdditionalInformation().then(res => setAdditionalInformation(res))
-    .catch(err => console.error(err))
+    .catch(err => handleApiError(err))
     .finally(() => setIsLoading(false));
   }
 
-  const addAdditionalInformation = () => {
+  const addAdditionalInformation = async () => {
     const formattedList = list.join("\n");
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
@@ -47,24 +48,21 @@ const AdditionalInformationList: React.FC = () => {
       description: type === "Paragraf" ? description : formattedList
     } 
     setIsLoading(true);
-    createAdditionalInformation(addInfoBody, user.token as string)
-    .then(() => {
-      toast.success("Informasi tambahan berhasil ditambahkan.")
+    try {
+      await createAdditionalInformation(addInfoBody, user.token as string);
+      toast.success("Informasi tambahan berhasil ditambahkan.");
       getAdditionalInformationData();
       setTitle('');
       setType('');
       setDescription('');
-    })
-    .catch(err =>{
-      if(err instanceof ApiError) {
-        toast.error(`Kuliner khas gagal ditambahkan. Error : ${err.message}`);
-        console.error(err.errors);
-      }
+    } catch (err) {
+      handleApiError(err);
+    } finally {
       setIsLoading(false);
-    });
+    }
   }
 
-  const updateAdditionalInformationData = (id: number) => {
+  const updateAdditionalInformationData = async (id: number) => {
     const formattedList = list.join("\n");
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
@@ -72,38 +70,30 @@ const AdditionalInformationList: React.FC = () => {
       description: type === "Paragraf" ? description : formattedList
     } 
     setIsLoading(true);
-    updateAdditionalInformation(id, addInfoBody, user.token as string)
-    .then(() => {
-      toast.success("Informasi tambahan berhasil diperbarui.")
+    try {
+      await updateAdditionalInformation(id, addInfoBody, user.token as string);
+      toast.success("Informasi tambahan berhasil diperbarui.");
       getAdditionalInformationData();
       setId(0);
       setTitle('');
       setType('');
       setDescription('');
       setList([]);
-    })
-    .catch(err =>{
-      if(err instanceof ApiError) {
-        toast.error(`Informasi tambahan gagal diperbarui. Error : ${err.message}`);
-        console.error(err.errors);
-      }
+    } catch (err) {
+      handleApiError(err);
+    } finally {
       setIsLoading(false);
-    });
+    }
   }
 
-  const deleteAdditionalInformationData = (id: number) => {
-      deleteAdditionalInformation(id, user.token as string)
-      .then(() => {
-        toast.success("Informasi tambahan berhasil dihapus.");
-        getAdditionalInformationData();
-      })
-      .catch(err => {
-        if(err instanceof ApiError) {
-          toast.error(`Informasi tambahan gagal dihapus. Error : ${err.message}`);
-          console.error(err.errors);
-        }
-        setIsLoading(false);
-      });
+  const deleteAdditionalInformationData = async (id: number) => {
+    try {
+      await deleteAdditionalInformation(id, user.token as string);
+      toast.success("Informasi tambahan berhasil dihapus.");
+      getAdditionalInformationData();
+    } catch (err) {
+      handleApiError(err);
+    }
   }
 
   const handleAddArray = () => {

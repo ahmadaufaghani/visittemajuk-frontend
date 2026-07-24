@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/authContextValue';
 import { useDestinations } from '../../../hooks/useDestinations';
 import { deleteDestination } from '../../../services/destinationsApi';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 import { storageUrl } from '../../../utils/storageUrl';
+import { showConfirm } from '../../../utils/confirm';
 import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -13,6 +15,7 @@ const DestinationList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const { token } = useAuth();
+  const handleApiError = useApiErrorHandler();
   const {
     destinations,
     meta,
@@ -47,27 +50,31 @@ const DestinationList: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus destinasi ini?')) {
-      if (!token) {
-        setActionError('Sesi admin tidak valid.');
-        return;
-      }
-
-      setActionError(null);
-
-      try {
-        await deleteDestination(id, token);
-        toast.success('Destinasi berhasil dihapus.');
-        if (destinations.length === 1 && page > 1) {
-          setPage((currentPage) => Math.max(1, currentPage - 1));
-        } else {
-          await reload();
+    showConfirm({
+      title: 'Hapus Destinasi',
+      message: 'Apakah Anda yakin ingin menghapus destinasi ini?',
+      onConfirm: async () => {
+        if (!token) {
+          setActionError('Sesi admin tidak valid.');
+          return;
         }
-      } catch {
-        toast.error('Gagal menghapus destinasi. Silakan coba lagi.');
-        setActionError('Destinasi belum dapat dihapus.');
-      }
-    }
+
+        setActionError(null);
+
+        try {
+          await deleteDestination(id, token);
+          toast.success('Destinasi berhasil dihapus.');
+          if (destinations.length === 1 && page > 1) {
+            setPage((currentPage) => Math.max(1, currentPage - 1));
+          } else {
+            await reload();
+          }
+        } catch (err) {
+          handleApiError(err);
+          setActionError('Destinasi belum dapat dihapus.');
+        }
+      },
+    });
   };
 
   return (

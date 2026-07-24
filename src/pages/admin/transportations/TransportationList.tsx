@@ -5,9 +5,10 @@ import { useAuth } from '../../../contexts/authContextValue';
 import { PuffLoader } from "react-spinners";
 import { useTransportation } from '../../../hooks/useTransportations';
 import { deleteTransportation } from '../../../services/transportationsApi';
+import { showConfirm } from '../../../utils/confirm';
 import toast from 'react-hot-toast';
-import { ApiError } from '../../../lib/api';
 import { storageUrl } from '../../../utils/storageUrl';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 
 const TransportationList: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<number>(0);
@@ -15,6 +16,7 @@ const TransportationList: React.FC = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const user = useAuth();
+  const handleApiError = useApiErrorHandler();
 
   const {transportations, isLoading, error, reload, meta} = useTransportation({params:{
     search : searchTerm,
@@ -24,23 +26,19 @@ const TransportationList: React.FC = () => {
   }});
 
   const handleDelete = async (id: number) => {
-    try {
-      if (window.confirm('Apakah Anda yakin ingin menghapus rute kuliner ini?')) {
-        await deleteTransportation(id,user.token as string)
-        .then(() => {
-          toast.success("Transportasi berhasil dihapus.")
-        })
-        .catch(err => {
-          if(err instanceof ApiError) {
-            toast.error(`Transportasi gagal dihapus. Error : ${err.message}`);
-            console.error(err.errors);
-          }
-        });
-        reload();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    showConfirm({
+      title: 'Hapus Transportasi',
+      message: 'Apakah Anda yakin ingin menghapus rute kuliner ini?',
+      onConfirm: async () => {
+        try {
+          await deleteTransportation(id, user.token as string);
+          toast.success("Transportasi berhasil dihapus.");
+          reload();
+        } catch (err) {
+          handleApiError(err);
+        }
+      },
+    });
   };
 
   const pagination = meta.pagination;

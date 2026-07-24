@@ -4,11 +4,11 @@ import { useAuth } from '../../../contexts/authContextValue';
 import { PuffLoader } from "react-spinners";
 import { createAdditionalCulinary, deleteAdditionalCulinary, getAdditionalCulinaries, updateAdditionalCulinary } from '../../../services/culinariesApi';
 import toast from 'react-hot-toast';
-import { ApiError } from '../../../lib/api';
 import { AdditionalCulinary } from '../../../types/culinary';
 import { useOverlay } from '../../../contexts/OverlayContext';
 import {Link} from 'react-router-dom';
 import { storageUrl } from '../../../utils/storageUrl';
+import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 
 const AdditionalCulinaryList: React.FC = () => {
 
@@ -23,23 +23,24 @@ const AdditionalCulinaryList: React.FC = () => {
   const [preview, setPreview] = useState<string>('');
   const [selectedRow, setSelectedRow] = useState<number>(0);
   const overlay = useOverlay();
+  const handleApiError = useApiErrorHandler();
   
   const getAdditionalCulinariesData = () => {
     setIsLoading(true);
     getAdditionalCulinaries().then(res => setAdditionalCulinaries(res))
-    .catch(err => console.error(err))
+    .catch(err => handleApiError(err))
     .finally(() => setIsLoading(false));
   }
 
-  const addAdditionalCulinary = () => {
+  const addAdditionalCulinary = async () => {
     const formBody = new FormData();
     formBody.append('title', title);
     formBody.append('description', description);
     formBody.append('image', image!);
     setIsLoading(true);
-    createAdditionalCulinary(formBody, user.token as string)
-    .then(() => {
-      toast.success("Kuliner khas berhasil ditambahkan.")
+    try {
+      await createAdditionalCulinary(formBody, user.token as string);
+      toast.success("Kuliner khas berhasil ditambahkan.");
       getAdditionalCulinariesData();
       setTitle('');
       setDescription('');
@@ -49,25 +50,22 @@ const AdditionalCulinaryList: React.FC = () => {
         imageFile.current.type = "text";
         imageFile.current.type = "file";
       }
-    })
-    .catch(err =>{
-      if(err instanceof ApiError) {
-        toast.error(`Kuliner khas gagal ditambahkan. Error : ${err.message}`);
-        console.error(err.errors);
-      }
+    } catch (err) {
+      handleApiError(err);
+    } finally {
       setIsLoading(false);
-    });
+    }
   }
 
-  const updateAdditionalCulinaryData = (id: number) => {
+  const updateAdditionalCulinaryData = async (id: number) => {
     const formBody = new FormData();
     formBody.append('title', title);
     formBody.append('description', description);
     formBody.append('image', image!);
     setIsLoading(true);
-    updateAdditionalCulinary(id, formBody, user.token as string)
-    .then(() => {
-      toast.success("Kuliner khas berhasil diperbarui.")
+    try {
+      await updateAdditionalCulinary(id, formBody, user.token as string);
+      toast.success("Kuliner khas berhasil diperbarui.");
       getAdditionalCulinariesData();
       setId(0);
       setTitle('');
@@ -78,29 +76,21 @@ const AdditionalCulinaryList: React.FC = () => {
         imageFile.current.type = "text";
         imageFile.current.type = "file";
       }
-    })
-    .catch(err =>{
-      if(err instanceof ApiError) {
-        toast.error(`Kuliner khas gagal diperbarui. Error : ${err.message}`);
-        console.error(err.errors);
-      }
+    } catch (err) {
+      handleApiError(err);
+    } finally {
       setIsLoading(false);
-    });
+    }
   }
 
-  const deleteAdditionalCulinaryData = (id: number) => {
-      deleteAdditionalCulinary(id, user.token as string)
-      .then(() => {
-        toast.success("Kuliner khas berhasil dihapus.");
-        getAdditionalCulinariesData();
-      })
-      .catch(err => {
-        if(err instanceof ApiError) {
-          toast.error(`Kuliner khas gagal dihapus. Error : ${err.message}`);
-          console.error(err.errors);
-        }
-        setIsLoading(false);
-      });
+  const deleteAdditionalCulinaryData = async (id: number) => {
+    try {
+      await deleteAdditionalCulinary(id, user.token as string);
+      toast.success("Kuliner khas berhasil dihapus.");
+      getAdditionalCulinariesData();
+    } catch (err) {
+      handleApiError(err);
+    }
   }
 
   useEffect(()=>{
