@@ -1,4 +1,5 @@
 import { apiRequest } from '../lib/api';
+import { Banner } from '../types/banner';
 import type {
   AdditionalInformation,
   AdditionalInformationPayload,
@@ -207,6 +208,41 @@ export async function deleteAdditionalInformation(
   const response = await apiRequest<null>(`/additionalInformation/${id}`, {
     method: 'DELETE',
     token
+  });
+
+  return response.data;
+}
+
+export async function getTransportationBanner() {
+  const response = await apiRequest<Banner[]>(`/banners?menu=transportasi`, {
+    method: 'GET'
+  });
+
+  return response.data;
+}
+
+export async function createTransportationBanner(
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>('/banners', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function updateTransportationBanner(
+  id: number,
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>(`/banners/${id}`, {
+    method: 'POST',
+    token,
+    body: payload,
   });
 
   return response.data;

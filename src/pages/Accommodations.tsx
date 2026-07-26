@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
@@ -8,6 +8,9 @@ import { useDebounce } from '../hooks/useDebounce';
 import { storageUrl } from '../utils/storageUrl';
 import { ChevronLeft, ChevronRight, Search, Hotel } from 'lucide-react';
 import { PuffLoader } from 'react-spinners';
+import { Banner } from '../types/banner';
+import { getAccomodationBanner } from '../services/accommodationsApi';
+import { ApiError } from '../lib/api';
 
 const Accommodations: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +18,8 @@ const Accommodations: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const debouncedSearch = useDebounce(searchTerm, 300);
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [isEmptyBanner, setIsEmptyBanner] = useState<boolean>(false);
   const { accommodations, meta, isLoading, error } = useAccommodations({
     params: {
       search: debouncedSearch,
@@ -59,12 +64,29 @@ const Accommodations: React.FC = () => {
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
+  useEffect(()=> {
+      getAccomodationBanner()
+          .then(res => {
+            if(res.length === 0) {
+              setIsEmptyBanner(true);
+            }
+            const [banner] = res;
+            setBanner(banner);
+          })
+          .catch(err => {
+            setIsEmptyBanner(true);
+            if(err instanceof ApiError) {
+              console.error(err.errors);
+            }
+          });
+    },[])
+
   return (
     <div>
       <Hero
-        title="Akomodasi di Temajuk"
-        subtitle="Temukan penginapan nyaman untuk liburan Anda"
-        imageUrl="https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+        title={banner?.title ? banner.title : !isEmptyBanner ? "Memuat judul..." : "Judul tidak tersedia"}
+        subtitle={banner?.description ? banner.description : !isEmptyBanner ? "Memuat deskripsi..." : "Deskripsi tidak tersedia"}
+        imageUrl={storageUrl(banner?.image)}
       />
 
       <section className="py-16 bg-white">

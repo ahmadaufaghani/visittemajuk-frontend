@@ -123,7 +123,7 @@ const AdditionalCulinaryList: React.FC = () => {
   return (
     <>
       {/* Form CRUD */}
-      <div className={`bg-white rounded-lg p-6 left-[20%] translate-x-[-15%] top-[50%] translate-y-[-50%] sm:left-[50%] sm:translate-x-[-50%] xl:left-[55%] xl:translate-x-[-40%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "absolute" : "hidden"}`}>
+      <div className={`bg-white rounded-lg p-6 left-[20%] translate-x-[-15%] top-[50%] translate-y-[-50%] sm:left-[50%] sm:translate-x-[-50%] xl:left-[55%] xl:translate-x-[-40%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "fixed" : "hidden"}`}>
       <form onSubmit={(e) => {
         e.preventDefault();
         if(id) {
@@ -196,7 +196,7 @@ const AdditionalCulinaryList: React.FC = () => {
                   name="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
+                  rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   required
                   placeholder="Masukkan deskripsi kuliner khas"
@@ -241,9 +241,10 @@ const AdditionalCulinaryList: React.FC = () => {
         {/* Header */}
         <div className="space-y-4 sm:flex sm:justify-between sm:items-center">
           <h1 className="text-2xl font-bold text-gray-800">Manajemen Kuliner Khas</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-col items-end sm:flex-row sm:items-center sm:justify-end gap-2">
             <Link
               to="/kuliner"
+              target="_blank"
               className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
             >
               <MoveUpRight className="h-4 w-4" />
@@ -291,7 +292,7 @@ const AdditionalCulinaryList: React.FC = () => {
                           <div className="text-sm font-medium text-gray-900">
                             {item.title}
                           </div>
-                          <div className="text-sm text-gray-500 hidden md:table-cell">
+                          <div className="text-sm text-gray-500 hidden sm:table-cell">
                             {item.description}
                           </div>
                         </div>
@@ -300,7 +301,7 @@ const AdditionalCulinaryList: React.FC = () => {
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
                         onClick={()=>setSelectedRow((prev) => prev === item.id ? 0 : item.id)}
-                        className="bg-primary hover:bg-primary-dark text-white p-1 rounded-full transition-colors duration-200 md:hidden"
+                        className="bg-primary hover:bg-primary-dark text-white p-1 rounded-full transition-colors duration-200 sm:hidden"
                       >
                         {selectedRow === item.id 
                         ? 
@@ -309,7 +310,7 @@ const AdditionalCulinaryList: React.FC = () => {
                         <ChevronDown className="h-4 w-4" />
                         }
                       </button>
-                      <div className="justify-end space-x-2 hidden md:flex">
+                      <div className="justify-end space-x-2 hidden sm:flex">
                         <button
                           onClick={()=>{
                             setId(item.id);
@@ -337,13 +338,13 @@ const AdditionalCulinaryList: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                  <tr className={`${selectedRow === item.id ? "" : "hidden"} md:hidden`}>
+                  <tr className={`${selectedRow === item.id ? "" : "hidden"} sm:hidden`}>
                     <td colSpan={3} className="p-0">
                       <table>
                         <tbody className="divide-y">
                           <tr className="divide-x">
                             <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>
-                            <td className="p-1">
+                            <td className="p-1 text-gray-500 text-sm">
                               {item.description}
                             </td>
                           </tr>

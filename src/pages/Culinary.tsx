@@ -8,9 +8,11 @@ import { PuffLoader } from 'react-spinners';
 import { useCulinaries } from '../hooks/useCulinaries';
 import { useDebounce } from '../hooks/useDebounce';
 import { AdditionalCulinary } from '../types/culinary';
-import { getAdditionalCulinaries } from '../services/culinariesApi';
 import { storageUrl } from '../utils/storageUrl';
 import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
+import { getAdditionalCulinaries, getCulinaryBanner } from '../services/culinariesApi';
+import { ApiError } from '../lib/api';
+import { Banner } from '../types/banner';
 
 const Culinary: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,6 +24,8 @@ const Culinary: React.FC = () => {
   const [errorAddCulinary, setErrorAddCulinary] = useState<string>('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const handleApiError = useApiErrorHandler();
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [isEmptyBanner, setIsEmptyBanner] = useState<boolean>(false);
 
   const {culinaries, meta, isLoading : isLoadingCulinary, error} = useCulinaries({ 
     params: {
@@ -65,6 +69,21 @@ const Culinary: React.FC = () => {
 
   useEffect(()=> {
     setIsLoadingAddCulinary(true);
+    getCulinaryBanner()
+    .then(res => {
+      if(res.length === 0) {
+        setIsEmptyBanner(true);
+      }
+      const [banner] = res;
+      setBanner(banner);
+    })
+    .catch(err => {
+      setIsEmptyBanner(true);
+      if(err instanceof ApiError) {
+        console.error(err.errors);
+      }
+    });
+
     getAdditionalCulinaries()
     .then(res => {
       setAdditionalCulinaries(res);
@@ -75,16 +94,16 @@ const Culinary: React.FC = () => {
     })
     .finally(()=> {
       setIsLoadingAddCulinary(false);
-    })
+    });
   },[]);
 
-
+  console.log(isEmptyBanner);
   return (
     <div>
       <Hero
-        title="Kuliner Khas Temajuk"
-        subtitle="Jelajahi cita rasa autentik dan hidangan lezat dari Temajuk"
-        imageUrl="https://images.pexels.com/photos/566345/pexels-photo-566345.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+        title={banner?.title ? banner.title : !isEmptyBanner ? "Memuat judul..." : "Judul tidak tersedia"}
+        subtitle={banner?.description ? banner.description : !isEmptyBanner ? "Memuat deskripsi..." : "Deskripsi tidak tersedia"}
+        imageUrl={storageUrl(banner?.image)}
       />
 
       <section className="py-16 bg-white">

@@ -1,5 +1,6 @@
 
 import { apiRequest } from '../lib/api';
+import { Banner } from '../types/banner';
 import type {
   AdditionalCulinary,
   AdditionalCulinaryPayload,
@@ -105,6 +106,7 @@ export async function deleteCulinary(id: number, token: string): Promise<void> {
   });
 }
 
+
 export async function createSpeciality(
   payload: SpecialtyPayload,
   token: string
@@ -145,6 +147,20 @@ export async function createGallery(
   token: string
 ): Promise<Gallery> {
   const response = await apiRequest<Gallery>('/culinaryGalleries', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function updateGallery(
+  id: number,
+  payload: FormData,
+  token: string
+): Promise<Gallery> {
+  const response = await apiRequest<Gallery>(`/culinaryGalleries/${id}`, {
     method: 'POST',
     token,
     body: payload,
@@ -202,3 +218,37 @@ export async function deleteAdditionalCulinary(id: number, token: string): Promi
   });
 }
 
+export async function getCulinaryBanner() {
+  const response = await apiRequest<Banner[]>(`/banners?menu=kuliner`, {
+    method: 'GET'
+  });
+
+  return response.data;
+}
+
+export async function createCulinaryBanner(
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>('/banners', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function updateCulinaryBanner(
+  id: number,
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>(`/banners/${id}`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}

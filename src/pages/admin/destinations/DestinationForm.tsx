@@ -212,7 +212,7 @@ const DestinationForm: React.FC = () => {
     category: formData.category.trim(),
     price: formData.price.trim(),
     location: formData.location.trim(),
-    locationMap: formData.locationMap.trim(),
+    locationMap: formData.locationMap?.trim(),
     openHours: formData.openHours.trim(),
     facilities: cleanItems(formData.facilities),
     activities: cleanItems(formData.activities),
