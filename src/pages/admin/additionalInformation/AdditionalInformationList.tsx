@@ -8,6 +8,7 @@ import { useOverlay } from '../../../contexts/OverlayContext';
 import { Link } from 'react-router-dom';
 import { AdditionalInformation, AdditionalInformationPayload } from '../../../types/transportation';
 import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import { ApiError } from '../../../lib/api';
 
 const AdditionalInformationList: React.FC = () => {
   const [additionalInformation, setAdditionalInformation] = useState<AdditionalInformation[]>([]);
@@ -32,6 +33,16 @@ const AdditionalInformationList: React.FC = () => {
     const matchesCategory = selectedCategory === '' || item.type === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleResetForm = () => {
+    if(id) {
+      setId(0);
+    }
+    setTitle('');
+    setType('');
+    setDescription('');
+    setList([]);
+  }
   
   const getAdditionalInformationData = () => {
     setIsLoading(true);
@@ -52,14 +63,16 @@ const AdditionalInformationList: React.FC = () => {
       await createAdditionalInformation(addInfoBody, user.token as string);
       toast.success("Informasi tambahan berhasil ditambahkan.");
       getAdditionalInformationData();
-      setTitle('');
-      setType('');
-      setDescription('');
-    } catch (err) {
-      handleApiError(err);
-    } finally {
+      handleResetForm();
+      overlay.changeStatus(false);
+      overlay.changeStatusDialogForm(false);
+    }catch (err) {
       setIsLoading(false);
-    }
+      if(err instanceof ApiError) {
+        toast.error(`Kuliner khas gagal ditambahkan. Error : ${err.message}`);
+        console.log(err.errors);
+      }
+    };
   }
 
   const updateAdditionalInformationData = async (id: number) => {
@@ -67,33 +80,30 @@ const AdditionalInformationList: React.FC = () => {
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
       type : type,
-      description: type === "Paragraf" ? description : formattedList
-    } 
+      description: type === "paragraph" ? description : formattedList
+    }
     setIsLoading(true);
     try {
       await updateAdditionalInformation(id, addInfoBody, user.token as string);
       toast.success("Informasi tambahan berhasil diperbarui.");
       getAdditionalInformationData();
-      setId(0);
-      setTitle('');
-      setType('');
-      setDescription('');
-      setList([]);
-    } catch (err) {
-      handleApiError(err);
-    } finally {
+      handleResetForm();
+    } catch(err) {
       setIsLoading(false);
-    }
+      handleApiError(err);
+    };
   }
 
   const deleteAdditionalInformationData = async (id: number) => {
-    try {
-      await deleteAdditionalInformation(id, user.token as string);
-      toast.success("Informasi tambahan berhasil dihapus.");
-      getAdditionalInformationData();
-    } catch (err) {
-      handleApiError(err);
-    }
+      setIsLoading(true);
+      try {
+        await deleteAdditionalInformation(id, user.token as string);
+        toast.success("Informasi tambahan berhasil dihapus.");
+        getAdditionalInformationData();
+      } catch (err) {
+        setIsLoading(false);
+        handleApiError(err);
+      }
   }
 
   const handleAddArray = () => {
@@ -110,12 +120,7 @@ const AdditionalInformationList: React.FC = () => {
 
   useEffect(()=> {
     if(!(overlay.statusDialogForm)) {
-      if(id) {
-        setId(0);
-      }
-      setTitle('');
-      setDescription('');
-      setType('');
+     handleResetForm();
     }
     },[overlay.statusDialogForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -126,7 +131,7 @@ const AdditionalInformationList: React.FC = () => {
   return (
     <>
       {/* Form CRUD */}
-      <div className={`bg-white rounded-lg p-6 w-fit h-fit sm:w-[400px] inset-0 m-auto xl:left-[15%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "absolute" : "hidden"}`}>
+      <div className={`bg-white rounded-lg p-6 w-fit h-fit sm:w-[400px] inset-0 m-auto xl:left-[15%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "fixed" : "hidden"}`}>
       <form onSubmit={(e) => {
         e.preventDefault();
         if(id) {
@@ -154,7 +159,7 @@ const AdditionalInformationList: React.FC = () => {
                 name="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full mb-2 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="Masukkan judul informasi tambahan"
                 required
               />
@@ -163,13 +168,13 @@ const AdditionalInformationList: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipe *
               </label>
-              <select required name="type" value={type} className="w-full px-4 py-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none" onChange={(e)=>setType(e.target.value)}>
+              <select name="type" value={type} className="w-full px-4 py-2 mb-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none" onChange={(e)=>setType(e.target.value)} required>
                 <option value="">- Pilih Tipe Informasi -</option>
-                <option value="Paragraf">Paragraf</option>
-                <option value="Daftar/List">Daftar/List</option>
+                <option value="paragraph">Paragraf</option>
+                <option value="list">Daftar</option>
               </select>
             </div>
-            { type === 'Paragraf' || type === '' 
+            { type === "paragraph" || type === ""
                 ?
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -181,8 +186,8 @@ const AdditionalInformationList: React.FC = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required
                   placeholder="Masukkan deskripsi informasi tambahan"
+                  required
                 />
               </div>
                 :
@@ -203,15 +208,15 @@ const AdditionalInformationList: React.FC = () => {
                 <div className="h-[200px] [scrollbar-width:none] overflow-y-scroll">
                   {list && list.map((item, index) => {
                     return (
-                      <div key={index+'-list'} className="flex gap-2 mb-3">
+                      <div key={index+'-list'} className="flex gap-2 mb-3 mt-2">
                         <input
                           key={index+'-list'}
                           type="text"
                           value={item}
                           onChange={(e) => handleArrayChange(index, e.target.value)}
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                          required
                           placeholder="Masukkan deskripsi dari informasi"
+                          required
                         />
                         <button
                           onClick={(e)=>{
@@ -234,15 +239,7 @@ const AdditionalInformationList: React.FC = () => {
               onClick={() => {
                 overlay.changeStatusDialogForm(false);
                 overlay.changeStatus(false);
-
-                if(id) {
-                  setId(0);
-                }
-
-                setTitle('');
-                setType('');
-                setDescription('');
-                setList([]);
+                handleResetForm();
               }}
               className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               >
@@ -252,7 +249,13 @@ const AdditionalInformationList: React.FC = () => {
               type="submit"
               className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               >
-                {id ? "Edit Informasi" : "Tambah Informasi"}
+              { 
+                id 
+                ? 
+                <span>Perbarui Informasi</span> 
+                :
+                <span>Tambah Informasi</span>
+              }
               </button>
             </div>
           </div>
@@ -262,9 +265,10 @@ const AdditionalInformationList: React.FC = () => {
         {/* Header */}
         <div className="space-y-4 md:flex md:justify-between md:items-center">
           <h1 className="text-2xl font-bold text-gray-800">Manajemen Informasi Tambahan</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-col items-end sm:flex-row sm:items-center sm:justify-end gap-2">
             <Link
               to="/transportasi"
+              target="_blank"
               className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
             >
               <MoveUpRight className="h-4 w-4" />
@@ -306,7 +310,7 @@ const AdditionalInformationList: React.FC = () => {
                 <option value="">Semua Tipe</option>
                 {types.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {type  === "paragraph" ? "Paragraf" : "Daftar"}
                   </option>
                 ))}
               </select>
@@ -320,16 +324,16 @@ const AdditionalInformationList: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Judul
                   </th>
                   <th className="px-6 py-3 text-xs text-center font-medium text-gray-500 uppercase tracking-wider">
                     Tipe
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                     Deskripsi
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Aksi
                   </th>
                 </tr>
@@ -338,7 +342,7 @@ const AdditionalInformationList: React.FC = () => {
                 {!isLoading && additionalInformation && additionalInformation.length > 0 && filteredAddInfo.map((item) => (
                 <Fragment key={`${item.id}-fragment`}>
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-2 md:px-6 py-4">
+                    <td className="px-2 sm:px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
                         {item.title}
                       </div>
@@ -347,22 +351,22 @@ const AdditionalInformationList: React.FC = () => {
                       <div className="flex items-center justify-center">
                         <div className="ml-4">
                           <div className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full text-green-800 bg-green-100">
-                            {item.type}
+                            {item.type === "paragraph" ? "paragraf" : "daftar"}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
+                    <td className="px-6 py-4 hidden sm:table-cell">
                       <div className="flex items-center">
                         <div className="ml-4">
                           
-                          {item.type === 'Paragraf' && 
+                          {item.type === "paragraph" && 
                             <div className="text-sm text-gray-500 whitespace-pre-line text-justify">
                               {item.description}
                             </div>
                           }
 
-                          {item.type === "Daftar/List" && 
+                          {item.type === "list" && 
                             <ul className="text-sm list-disc pl-3 text-gray-500">
                               {item.description.split("\n").map((item,index) => {
                               return (
@@ -377,7 +381,7 @@ const AdditionalInformationList: React.FC = () => {
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
                         onClick={()=>setSelectedRow((prev) => prev === item.id ? 0 : item.id)}
-                        className="bg-primary hover:bg-primary-dark text-white p-1 rounded-full transition-colors duration-200 md:hidden"
+                        className="bg-primary hover:bg-primary-dark text-white p-1 rounded-full transition-colors duration-200 sm:hidden"
                       >
                          {selectedRow === item.id 
                         ? 
@@ -386,13 +390,13 @@ const AdditionalInformationList: React.FC = () => {
                         <ChevronDown className="h-4 w-4" />
                         }
                       </button>
-                      <div className="justify-end space-x-2 hidden md:flex">
+                      <div className="justify-end space-x-2 hidden sm:flex">
                         <button
                           onClick={()=>{
                             setId(item.id);
                             setTitle(item.title);
                             setType(item.type);
-                            if(item.type === "Paragraf") {
+                            if(item.type === "paragraph") {
                               setDescription(item.description);
                             } else {
                               setList(prev => [...prev, ...item.description.split("\n")]);
@@ -424,7 +428,7 @@ const AdditionalInformationList: React.FC = () => {
                         <tbody className="divide-y">
                           <tr className="divide-x">
                             <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>
-                            <td className="p-1">{item.type === 'Paragraf' 
+                            <td className="p-1 pl-3">{item.type === 'paragraph' 
                               ? 
                               <div className="text-sm text-gray-500 whitespace-pre-line text-justify">
                                 {item.description}

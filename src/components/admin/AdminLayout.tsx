@@ -23,6 +23,7 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
   const [idOpenedSubMenu, setIdOpenedSubMenu] = useState<number>(0);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isHeightShrinked, setIsHeightShrinked] = useState<boolean>(false);
   const overlay = useOverlay();
 
   const isActive = (path: string) => {
@@ -56,25 +57,41 @@ const AdminLayout: React.FC = () => {
     },
   ], []);
 
-  useEffect(() => {
-    const onResize = () => {
-      if (window.innerWidth >= 1280) {
-        overlay.changeStatusSideBarMobile(false);
-        overlay.changeStatusDialogForm(false);
-        overlay.changeStatus(false);
-      }
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [overlay]);
+  window.addEventListener('resize', () => {
+    if(window.innerWidth >= 1280) {
+      overlay.changeStatusSideBarMobile(false);
+      overlay.changeStatusDialogForm(false);
+      overlay.changeStatus(false);
+    }
+    
+    if(window.innerHeight <= 480) {
+      setIsHeightShrinked(true);
+    } else {
+      setIsHeightShrinked(false);
+    }
+  });
+
+  window.addEventListener('scroll', () => {
+    if(window.innerHeight <= 120) {
+      return setIsHeightShrinked(true);
+    }
+    
+    if(window.innerHeight <= 480 && window.scrollY >= 101) {
+      setIsHeightShrinked(false);
+    }
+    
+    if (window.innerHeight <= 480 && window.scrollY <= 100) {
+      setIsHeightShrinked(true);
+    }
+  })
 
   useEffect(() => {
-    menuItems.forEach((val, i) => {
-      if (location.pathname.startsWith(val.path)) {
-        setIdOpenedSubMenu(i);
-      }
-    });
-  }, [location.pathname, menuItems]);
+    const subMenu = location.pathname.split("/")[3];
+    menuItems.map((val, i) => location.pathname.startsWith(val.path) && subMenu && (subMenu !== 'edit' && subMenu !== 'add') && setIdOpenedSubMenu(i));
+    if(window.innerHeight <= 480) {
+      setIsHeightShrinked(true);
+    }
+  },[location.pathname, menuItems]);
 
   return (
     <div className="relative min-h-screen bg-gray-100 lg:flex">
@@ -171,8 +188,8 @@ const AdminLayout: React.FC = () => {
             </div>
           ))}
         </nav>
-
-        <div className="fixed w-64 bottom-0 p-6 border-t border-gray-200 bg-white">
+             
+        <div className={`${isHeightShrinked ? "" : "fixed bottom-0"} w-64 p-6 border-t border-gray-200 transition-all -z-10`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-800">{user?.username}</p>

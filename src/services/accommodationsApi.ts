@@ -5,6 +5,7 @@ import type {
   AccommodationListParams,
   AccommodationListResult,
 } from '../types/accommodation';
+import { Banner } from '../types/banner';
 
 const emptyAccommodationListMeta: AccommodationListMeta = {
   pagination: {
@@ -130,4 +131,39 @@ export async function deleteAccommodationGallery(id: number, token: string): Pro
     method: 'DELETE',
     token,
   });
+}
+
+export async function getAccomodationBanner() {
+  const response = await apiRequest<Banner[]>(`/banners?menu=akomodasi`, {
+    method: 'GET'
+  });
+
+  return response.data;
+}
+
+export async function createAccomodationBanner(
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>('/banners', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function updateAccomodationBanner(
+  id: number,
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>(`/banners/${id}`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
@@ -9,12 +9,17 @@ import { usePhotoSpots } from '../hooks/usePhotoSpots';
 import { usePhotographyTips } from '../hooks/usePhotographyTips';
 import { useDebounce } from '../hooks/useDebounce';
 import { storageUrl } from '../utils/storageUrl';
+import { Banner } from '../types/banner';
+import { getPhotoSpotsBanner } from '../services/photoSpotsApi';
+import { ApiError } from '../lib/api';
 
 const PhotoSpots: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const debouncedSearch = useDebounce(searchTerm, 300);
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [isEmptyBanner, setIsEmptyBanner] = useState<boolean>(false);
   const { photoSpots, meta, isLoading, error } = usePhotoSpots({
     params: {
       search: debouncedSearch,
@@ -50,12 +55,29 @@ const PhotoSpots: React.FC = () => {
     updateSearchParams({ category: value });
   };
 
+  useEffect(()=> {
+      getPhotoSpotsBanner()
+      .then(res => {
+        if(res.length === 0) {
+          setIsEmptyBanner(true);
+        }
+        const [banner] = res;
+        setBanner(banner);
+      })
+      .catch(err => {
+        setIsEmptyBanner(true);
+        if(err instanceof ApiError) {
+          console.error(err.errors);
+        }
+      });
+    },[])
+
   return (
     <div>
       <Hero
-        title="Spot Foto Instagramable"
-        subtitle="Abadikan momen liburan Anda di lokasi-lokasi menarik di Temajuk"
-        imageUrl="https://images.pexels.com/photos/635279/pexels-photo-635279.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+        title={banner?.title ? banner.title : !isEmptyBanner ? "Memuat judul..." : "Judul tidak tersedia"}
+        subtitle={banner?.description ? banner.description : !isEmptyBanner ? "Memuat deskripsi..." : "Deskripsi tidak tersedia"}
+        imageUrl={storageUrl(banner?.image)}
       />
 
       <section className="py-16 bg-white">

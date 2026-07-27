@@ -5,9 +5,11 @@ import { Clock, DollarSign, AlertTriangle, ChevronDown, ChevronLeft, ChevronRigh
 import { useTransportation } from '../hooks/useTransportations';
 import { PuffLoader } from 'react-spinners';
 import { AdditionalInformation } from '../types/transportation';
-import { getAdditionalInformation } from '../services/transportationsApi';
 import { storageUrl } from '../utils/storageUrl';
 import { useApiErrorHandler } from '../hooks/useApiErrorHandler';
+import { getAdditionalInformation, getTransportationBanner } from '../services/transportationsApi';
+import { ApiError } from '../lib/api';
+import { Banner } from '../types/banner';
 
 const Transportation: React.FC = () => {
   const [openRoute, setOpenRoute] = useState<string | null>(null);
@@ -16,6 +18,8 @@ const Transportation: React.FC = () => {
   const [isLoadingAddInfo, setIsLoadingAddInfo] = useState<boolean>(false);
   const [errorAddInfo, setErrorLoadingAddInfo] = useState<string>('');
   const handleApiError = useApiErrorHandler();
+  const [banner, setBanner] = useState<Banner | null>(null);
+  const [isEmptyBanner, setIsEmptyBanner] = useState<boolean>(false);
 
   const toggleRoute = (id: string) => {
     if (openRoute === id) {
@@ -35,6 +39,22 @@ const Transportation: React.FC = () => {
 
   useEffect(()=>{
     setIsLoadingAddInfo(true);
+
+    getTransportationBanner()
+    .then(res => {
+      if(res.length === 0) {
+        setIsEmptyBanner(true);
+      }
+      const [banner] = res;
+      setBanner(banner);
+    })
+    .catch(err => {
+      setIsEmptyBanner(true);
+      if(err instanceof ApiError) {
+        console.error(err.errors);
+      }
+    });
+
     getAdditionalInformation()
     .then(res=>{
       setAdditionalInformation(res);
@@ -51,9 +71,9 @@ const Transportation: React.FC = () => {
   return (
     <div>
       <Hero
-        title="Panduan Transportasi"
-        subtitle="Informasi lengkap cara mencapai dan menjelajahi Temajuk"
-        imageUrl="https://images.pexels.com/photos/1178448/pexels-photo-1178448.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+        title={banner?.title ? banner.title : !isEmptyBanner ? "Memuat judul..." : "Judul tidak tersedia"}
+        subtitle={banner?.description ? banner.description : !isEmptyBanner ? "Memuat deskripsi..." : "Deskripsi tidak tersedia"}
+        imageUrl={storageUrl(banner?.image)}
       />
 
       <section className="py-16 bg-white">

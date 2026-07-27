@@ -1,4 +1,5 @@
 import { apiRequest } from '../lib/api';
+import { Banner } from '../types/banner';
 import type {
   PhotoSpot,
   PhotoSpotGallery,
@@ -130,4 +131,39 @@ export async function deletePhotoSpotGallery(id: number, token: string): Promise
     method: 'DELETE',
     token,
   });
+}
+
+export async function getPhotoSpotsBanner() {
+  const response = await apiRequest<Banner[]>(`/banners?menu=spotfoto`, {
+    method: 'GET'
+  });
+
+  return response.data;
+}
+
+export async function createPhotoSpotsBanner(
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>('/banners', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
+}
+
+export async function updatePhotoSpotsBanner(
+  id: number,
+  payload: FormData,
+  token: string
+): Promise<Banner> {
+  const response = await apiRequest<Banner>(`/banners/${id}`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+
+  return response.data;
 }

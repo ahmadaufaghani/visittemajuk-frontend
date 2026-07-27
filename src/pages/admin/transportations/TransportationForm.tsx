@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Plus, X, Pen, Check, Ban } from 'lucide-react';
+import { Save, ArrowLeft, Plus, X, Upload } from 'lucide-react';
 import { useAuth } from '../../../contexts/authContextValue';
 import type {
   TransportationTips,
   TransportationSteps,
-  Transportation,
   TransportationStepsList,
 } from '../../../types/transportation';
 import { ApiError } from '../../../lib/api';
 import { getTransportation, createTransportation, updateTransportation, createSteps, createTips, deleteSteps, deleteTips, updateTransportationSteps, updateTransportationTips } from '../../../services/transportationsApi';
-import { PuffLoader } from 'react-spinners';
+import { ClipLoader, PuffLoader } from 'react-spinners';
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
 import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
@@ -32,41 +31,40 @@ const TransportationForm: React.FC = () => {
   const [steps, setSteps] = useState<TransportationStepsList[]>([]);
   const [tips, setTips] = useState<string[]>([]);
   const [stepsUpdate, setStepsUpdate] = useState<TransportationSteps[]>([]);
+  const [stepsUpdatedTemp, setStepsUpdatedTemp] = useState<number[]>([]);
+  const [stepsDeletedTemp, setStepsDeletedTemp] = useState<number[]>([]);
+  const [tipsUpdatedTemp, setTipsUpdatedTemp] = useState<number[]>([]);
+  const [tipsDeletedTemp, setTipsDeletedTemp] = useState<number[]>([]);
   const [tipsUpdate, setTipsUpdate] = useState<TransportationTips[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
-  const [editStepsId, setEditStepsId] = useState<number>(0);
-  const [editTipsId, setEditTipsId] = useState<number>(0);
 
   const difficulties = ['Mudah', 'Sedang', 'Sulit'];
 
-
   const showTransportation = async (id: number) => {
+    try {
       setIsLoading(true);
-      getTransportation(id).then(res => {
-        setIdTransportation(res.id);
-        setTitle(res.title);
-        setDescription(res.description);
-        setImage(res.image);
-        setDifficulty(res.difficulty);
-        setEstimatedCost(res.estimated_cost);
-        setEstimatedTime(res.estimated_time);
-        setStepsUpdate(res.transportation_steps);
-        setTipsUpdate(res.transportation_tips);
+      const res = await getTransportation(id);
+      setIdTransportation(res.id);
+      setTitle(res.title);
+      setDescription(res.description);
+      setImage(res.image);
+      setDifficulty(res.difficulty);
+      setEstimatedCost(res.estimated_cost);
+      setEstimatedTime(res.estimated_time);
+      setStepsUpdate(res.transportation_steps);
+      setTipsUpdate(res.transportation_tips);
+      setIsLoading(false);
+    } catch (err) {
         setIsLoading(false);
-      }).catch(err => {
         handleApiError(err);
-      });
+    }
   }
 
-  useEffect(() => {
-    if (isEdit && id) {
-      showTransportation(Number(id));
-    }
-  }, [isEdit, id]);
-
   const addTransportationData = async () => {
+    try {
+      setIsLoadingForm(true);
       const formBody = new FormData();
       formBody.append("title", title.trim());
       formBody.append("description", description.trim());
@@ -75,84 +73,151 @@ const TransportationForm: React.FC = () => {
       formBody.append("estimated_cost", estimatedCost.trim());
       formBody.append("estimated_time", estimatedTime.trim());
 
-      createTransportation(formBody,user.token as string)
-      .then((res: Transportation ) => {
-        toast.success("Transportasi berhasil ditambahkan.");
-        addStepsData(res.id);
-        addTipsData(res.id);
-      })
-      .catch(err => {
-        if(err instanceof ApiError) {
-          toast.error(`Transportasi gagal ditambahkan. Error : ${err.message}`);
-          console.error(err.errors);
-        }
-      });
-
+      const res = await createTransportation(formBody,user.token as string);
+      toast.success("Transportasi berhasil ditambahkan.");
+      addStepsData(res.id);
+      addTipsData(res.id);
+    } catch (err) {
+        handleApiError(err);
+    }
   }
 
   const addStepsData = (id: number) => {
       steps.map(async (val) => {
-        createSteps({
-          description: val.description.trim(),
-          duration: val.duration.trim(),
-          cost: val.cost.trim(),
-          vehicle: val.vehicle.trim(),
-          transportation_id: id
-        }, user.token as string)
-        .then(()=> {
+        try {
+          await createSteps({
+            description: val.description.trim(), 
+            duration: val.duration.trim(), 
+            cost: val.cost.trim(), 
+            vehicle: val.vehicle.trim(), 
+            transportation_id: id
+          }, 
+          user.token as string);
           toast.success("Langkah baru berhasil ditambahkan.");
-        })
-        .catch(err => {
-          if(err instanceof ApiError) {
-            toast.error(`Langkah baru gagal ditambahkan. Error : ${err.message}`);
-            console.error(err.errors);
-          }
-        });
+        } catch (err) {
+            handleApiError(err);
+        }
       });
   }
 
   const addTipsData = (id: number) => {
       tips.map(async (val) => {
-        createTips({tip: val.trim(), transportation_id: id}, user.token as string)
-        .then(()=> {
-           toast.success("Tips baru berhasil ditambahkan.");
-        })
-        .catch(err => {
-         if(err instanceof ApiError) {
-            toast.error(`Tips baru gagal ditambahkan. Error : ${err.message}`);
-            console.error(err.errors);
-          }
-        });
+        try {
+          await createTips({
+            tip: val.trim(), 
+            transportation_id: id
+          }, user.token as string);
+          toast.success("Tips baru berhasil ditambahkan.");
+        } catch (err) {
+          if(err instanceof ApiError) {
+             toast.error(`Tips baru gagal ditambahkan. Error : ${err.message}`);
+             console.error(err.errors);
+           }  
+        }
       });
 
   }
 
   const updateTransportationData = async (id : number) => {
-    const formBody = new FormData();
-    formBody.append("title", title.trim());
-      formBody.append("description", description.trim());
-      formBody.append("image", image!);
+    try {
+      setIsLoadingForm(true);
+      const formBody = new FormData();
+      formBody.append("title",title.trim());
+      formBody.append("description",description.trim());
+      formBody.append("image",image!);
       formBody.append("difficulty", difficulty.trim());
       formBody.append("estimated_cost", estimatedCost.trim());
       formBody.append("estimated_time", estimatedTime.trim());
-
-    updateTransportation(id, formBody, user.token as string)
-    .then(() => {
-        toast.success("Transportasi berhasil diperbarui.");
-        addStepsData(idTransportation);
-        addTipsData(idTransportation);
-      })
-    .catch(err => {
+      await updateTransportation(id, formBody, user.token as string);
+      toast.success("Transportasi berhasil diperbarui.");
+      addStepsData(id);
+      addTipsData(id);
+      updateStepsData();
+      updateTipsData();
+      deleteStepsData();
+      deleteTipsData();
+      setIsLoadingForm(false);    
+    } catch (err) {   
       handleApiError(err);
+    }
+  }
+
+  const updateStepsData = () => {
+      stepsUpdatedTemp.map(async (val) => {
+        try {
+          const steps = stepsUpdate[val];
+  
+          if(!stepsDeletedTemp.find(val => val === steps.id)) {
+            await updateTransportationSteps(steps.id, {description:steps.description.trim(), duration: steps.duration.trim(), cost: steps.cost.trim(), vehicle: steps.vehicle.trim(), transportation_id: steps.transportation_id}, user.token as string);
+            toast.success("Langkah baru berhasil diperbarui.");
+          }
+        } catch (err) {
+          handleApiError(err);
+        }
+
+      });
+  }
+  
+  const updateTipsData = () => {
+    tipsUpdatedTemp.map(async (val) => {
+      try {
+        const tips = tipsUpdate[val];
+        
+        if(!tipsDeletedTemp.find(val => val === tips.id)) {
+          await updateTransportationTips(tips.id, {tip: tips.tip.trim(), transportation_id: tips.transportation_id}, user.token as string);
+          toast.success("Tips berhasil diperbarui.");  
+        }
+      } catch (err) {
+        handleApiError(err);
+      }
+    });
+    
+  }
+
+  const deleteStepsData = () => {
+    stepsDeletedTemp.map(async (val) => {
+      try {
+        await deleteSteps(val, user.token as string);
+        toast.success("Langkah berhasil dihapus.");
+      } catch (err) {
+        handleApiError(err);
+      }
     });
   }
 
+  const deleteTipsData = () => {
+    tipsDeletedTemp.map(async (val) => {
+      try {
+        await deleteTips(val, user.token as string);
+        toast.success("Tips berhasil dihapus.");
+      } catch (err) {
+        handleApiError(err);
+      }
+    });
+  }
+  
   const addArrayItemSteps = () => {
     setSteps(prev => [...prev, {description : '', duration: '', cost: '', vehicle: ''}]);
   }
 
   const addArrayItemTips = () => {
     setTips(prev => [...prev, '']);
+  }
+
+  const addArrayItemStepsUpdatedTemp = (val: number) => {
+    setStepsUpdatedTemp(prev => [...prev, val]);
+  }
+
+  const addArrayItemStepsDeletedTemp = (val: number) => {
+    setStepsDeletedTemp(prev => [...prev, val]);
+  }
+
+  const addArrayItemTipsUpdatedTemp = (val: number) => {
+    setTipsUpdatedTemp(prev => [...prev, val]);
+  }
+
+  const addArrayItemTipsDeletedTemp = (val: number) => {
+    setTipsDeletedTemp(prev => [...prev, val]);
   }
 
   const handleArrayChangeSteps = (index: number, key: string, value: string) => {
@@ -164,10 +229,10 @@ const TransportationForm: React.FC = () => {
   };
 
   const removeArrayItemSteps = (index: number) => {
-    setSteps(steps.filter((_, i) => i != index));
+    setSteps(steps.filter((_, i) => i !== index));
   }
   const removeArrayItemTips = (index: number) => {
-    setTips(tips.filter((_, i) => i != index));
+    setTips(tips.filter((_, i) => i !== index));
   }
 
   const handleArrayChangeStepsUpdate = (index: number, key: string, value: string) => {
@@ -181,18 +246,20 @@ const TransportationForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    try {
-      if(id) {
-        await updateTransportationData(Number(id));
-      } else {
-        await addTransportationData();
-      }
-      navigate('/admin/transportations', {replace : true});
-    } finally {
-      setIsSaving(false);
+    if(idTransportation) {
+      await updateTransportationData(idTransportation);
+    } else {
+      await addTransportationData();
     }
+    navigate('/admin/transportations', {replace : true});
   };
+  
+  useEffect(() => {
+    if (isEdit && id) {
+      showTransportation(Number(id));
+    }
+  }, [isEdit, id]);
+
 
   useEffect(()=>{
     return () => {
@@ -232,12 +299,12 @@ const TransportationForm: React.FC = () => {
                   Rute Transportasi *
                 </label>
                 <input
-
+                  disabled={isLoadingForm}
                   type="text"
                   name="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                   required
                   placeholder="cth: Potianak ke Temajuk"
                 />
@@ -248,11 +315,11 @@ const TransportationForm: React.FC = () => {
                   Tingkat Kesulitan *
                 </label>
                 <select
-
+                  disabled={isLoadingForm}
                   name="difficulty"
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                   required
                 >
                   <option value="">Pilih Kesulitan</option>
@@ -267,13 +334,13 @@ const TransportationForm: React.FC = () => {
                   Estimasi Biaya *
                 </label>
                 <input
-
+                  disabled={isLoadingForm}
                   type="text"
                   name="estimated_cost"
                   value={estimatedCost}
                   onChange={(e) => setEstimatedCost(e.target.value)}
                   placeholder="cth: Rp 100.000 - Rp 200.000 per orang"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                   required
                 />
               </div>
@@ -283,48 +350,58 @@ const TransportationForm: React.FC = () => {
                   Estimasi Waktu *
                 </label>
                 <input
-
+                  disabled={isLoadingForm}
                   type="text"
                   name="estimated_time"
                   value={estimatedTime}
                   onChange={(e) => setEstimatedTime(e.target.value)}
                   placeholder="cth: 1-2 Jam"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                   required
                 />
               </div>
             </div>
-
+           
             <div className="mt-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Gambar *
               </label>
-              {preview || id && image ? 
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+              {preview || id && image  ? (
                 <img
                   src={preview ? preview : storageUrl(image as string)}
-                  className='mb-4 w-64'
+                  alt="Pratinjau gambar utama"
+                  className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
                 />
-                :
-                <></>
-              }
-              <input
-                type="file"
-                name="image"
-                accept="image/jpeg,image/webp"
-                onChange={(e) => {
-
-                  const target = e.target as HTMLInputElement & {
-                    files : FileList;
-                  }
-                  setImage(target.files[0]);
-                  const objectUrl = URL.createObjectURL(target.files[0]);
-                  setPreview(objectUrl);
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                required={image ? false : true}
-              />
-              <div>
-                <span className="text-xs text-red-700">*ext: .jpg, .jpeg, .webp; max: 1 MB</span>
+              ) : (
+                <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
+                  Belum ada gambar
+                </div>
+              )}
+              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md ${isLoadingForm ? "cursor-not-allowed" : "cursor-pointer"} transition-colors`}>
+                <Upload className="h-4 w-4" />
+                <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
+                <input
+                  disabled={isLoadingForm}
+                  required={image ? false : true}
+                  type="file"
+                  accept="image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const target = e.target as HTMLInputElement & {
+                      files : FileList;
+                    }
+                    setImage(target.files[0]);
+                    const objectUrl = URL.createObjectURL(target.files[0]);
+                    setPreview(objectUrl);
+                  }}
+                />
+              </label>
+              {!isEdit ? (
+                <p className="text-xs text-gray-500">Wajib diisi untuk transportasi baru. Maks 1 MB. Format: JPG, JPEG, WebP.</p>
+              ) : (
+                <p className="text-xs text-gray-500">Kosongkan jika tidak ingin mengubah gambar. Format: JPG, JPEG, WebP. Maks 1 MB.</p>
+              )}
               </div>
             </div>
 
@@ -333,16 +410,16 @@ const TransportationForm: React.FC = () => {
                 Deskripsi *
               </label>
               <textarea
+                disabled={isLoadingForm}
                 name="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                 required
                 placeholder="Masukkan deskripsi dari rute transportasi"
               />
             </div>
-
           </div>
 
           {/* Steps */}
@@ -350,100 +427,57 @@ const TransportationForm: React.FC = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Langkah-langkah</h2>
               <button
+                disabled={isLoadingForm}
                 type="button"
-                className="text-primary hover:text-primary-dark flex items-center"
+                className={`text-primary hover:text-primary-dark flex items-center ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                 onClick={()=> {
                   addArrayItemSteps();
                 }}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Tambah Langkah
+                Tambah
               </button>
             </div>
 
             <div className="space-y-6">
               {id && stepsUpdate && stepsUpdate.length > 0 && stepsUpdate.map((item, index) => {
               return (
+              !stepsDeletedTemp.find(val => val === item.id) &&
               <div key={index+"div"} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium text-gray-800">Langkah {index+1}</h3>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="text-blue-600 hover:text-blue-800"
+                      className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       onClick={()=>{
-                        setEditStepsId(prev => prev === item.id ? 0 : item.id);
-                        if(editStepsId === item.id && editStepsId !== 0) {
-                          setIsLoading(true);
-                          updateTransportationSteps(item.id, stepsUpdate[index], user.token as string)
-                          .then(()=> {
-                            toast.success("Langkah berhasil diperbarui.");
-                            showTransportation(idTransportation);
-                          })
-                          .catch(err => {
-                            if(err instanceof ApiError) {
-                              toast.error(`Langkah gagal diperbarui. Error: ${err.message}`)
-                              console.error(err.errors);
-                            }
-                          });
-                        }
+                        addArrayItemStepsDeletedTemp(item.id);
                       }}
                     >
-                      {item.id === editStepsId 
-                      ? 
-                      <Check className="h-3 w-3" />
-                      :
-                      <Pen className="h-3 w-3" />
-                      }
-                    </button>
-                    <button
-                      type="button"
-                      className="text-red-600 hover:text-red-800"
-                      onClick={()=>{
-                        if(item.id === editStepsId) {
-                          setEditStepsId(0);
-                        } else {
-                          setIsLoading(true);
-                          deleteSteps(Number(item.id), user.token as string)
-                          .then(() => {
-                            toast.success("Langkah berhasil dihapus.")
-                            showTransportation(idTransportation);
-                          })
-                          .catch(err => {
-                            if(err instanceof ApiError) {
-                              toast.error(`Langkah gagal dihapus. Error: ${err.message}`)
-                              console.error(err.errors);
-                            }
-                          });
-                        }
-                      }}
-                    >
-                      {
-                        item.id === editStepsId 
-                        ? 
-                        <Ban className="h-3 w-3" />
-                        :
-                        <X className="h-4 w-4" />
-                      }
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Durasi *
                     </label>
                     <input
+                      disabled={isLoadingForm}
                       type="text"
                       name="duration"
                       value={item.duration}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${item.id !== editStepsId ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="1-2 Jam"
-                      onChange={(e)=>handleArrayChangeStepsUpdate(index, "duration", e.target.value)}
+                      onChange={(e)=>{
+                        handleArrayChangeStepsUpdate(index, "duration", e.target.value);
+                        if(!stepsUpdatedTemp.includes(index)) {
+                          addArrayItemStepsUpdatedTemp(index);
+                        }
+                      }}
                       required
-                      disabled={!(editStepsId === item.id)}
                     />
                   </div>
 
@@ -452,14 +486,19 @@ const TransportationForm: React.FC = () => {
                       Biaya *
                     </label>
                     <input
+                      disabled={isLoadingForm}
                       type="text"
                       name="cost"
                       value={item.cost}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${item.id !== editStepsId ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="Rp 50.000 - Rp 100.000"
-                      onChange={(e)=>handleArrayChangeStepsUpdate(index, "cost", e.target.value)}
+                      onChange={(e)=>{
+                        handleArrayChangeStepsUpdate(index, "cost", e.target.value);
+                        if(!stepsUpdatedTemp.includes(index)) {
+                          addArrayItemStepsUpdatedTemp(index);
+                        }
+                      }}
                       required
-                      disabled={!(editStepsId === item.id)}
                     />
                   </div>
                   <div>
@@ -467,36 +506,43 @@ const TransportationForm: React.FC = () => {
                       Kendaraan *
                     </label>
                     <input
+                      disabled={isLoadingForm}
                       type="text"
                       name="vehicle"
                       value={item.vehicle}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${item.id !== editStepsId ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="Bus / Travel"
-                      onChange={(e)=>handleArrayChangeStepsUpdate(index, "vehicle", e.target.value)}
+                      onChange={(e)=>{
+                        handleArrayChangeStepsUpdate(index, "vehicle", e.target.value);
+                        if(!stepsUpdatedTemp.includes(index)) {
+                          addArrayItemStepsUpdatedTemp(index);
+                        }
+                      }}
                       required
-                      disabled={!(editStepsId === item.id)}
                     />
                   </div>
                 </div>
-
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Deskripsi *
                   </label>
                   <textarea
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${item.id !== editStepsId ? "cursor-not-allowed" : ""}`}
+                    disabled={isLoadingForm}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                     placeholder="Masukkan deskripsi dari langkah"
                     value={item.description}
                     rows={2}
-                    onChange={(e)=>handleArrayChangeStepsUpdate(index, "description", e.target.value)}
+                    onChange={(e)=>{
+                      handleArrayChangeStepsUpdate(index, "description", e.target.value);
+                      if(!stepsUpdatedTemp.includes(index)) {
+                        addArrayItemStepsUpdatedTemp(index);
+                      }
+                    }}
                     required
-                    disabled={!(editStepsId === item.id)}
                   />
                 </div>
               </div>)  
               })}
-              
-              {id && steps && steps.length > 0 && <p className="font-semibold text-md pt-4">Tambah Langkah Baru</p>}
               {steps && steps.length > 0 && steps.map((item, index) => {
               return (
               <div key={index+"div"} className="border border-gray-200 rounded-lg p-4">
@@ -504,7 +550,7 @@ const TransportationForm: React.FC = () => {
                   <h3 className="font-medium text-gray-800">Langkah {id ? ((steps.length > 0) ? stepsUpdate.length+index+1 : stepsUpdate.length+1) :  index+1}</h3>
                     <button
                       type="button"
-                      className="text-red-600 hover:text-red-800"
+                      className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       onClick={()=>removeArrayItemSteps(index)}
                     >
                       <X className="h-4 w-4" />
@@ -518,10 +564,11 @@ const TransportationForm: React.FC = () => {
                       Durasi *
                     </label>
                     <input
+                      disabled={isLoadingForm}
                       type="text"
                       name="duration"
                       value={item.duration}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="cth: 1-2 Jam"
                       onChange={(e)=>handleArrayChangeSteps(index, "duration", e.target.value)}
                       required
@@ -533,10 +580,11 @@ const TransportationForm: React.FC = () => {
                       Biaya *
                     </label>
                     <input
+                      disabled={isLoadingForm}
                       type="text"
                       name="cost"
                       value={item.cost}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="cth: Rp 50.000 - Rp 100.000"
                       onChange={(e)=>handleArrayChangeSteps(index, "cost", e.target.value)}
                       required
@@ -547,10 +595,11 @@ const TransportationForm: React.FC = () => {
                       Kendaraan *
                     </label>
                     <input
+                      disabled={isLoadingForm}
                       type="text"
                       name="vehicle"
                       value={item.vehicle}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="cth: Bus / Travel"
                       onChange={(e)=>handleArrayChangeSteps(index, "vehicle", e.target.value)}
                       required
@@ -563,7 +612,8 @@ const TransportationForm: React.FC = () => {
                     Deskripsi *
                   </label>
                   <textarea
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={isLoadingForm}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                     placeholder="Masukkan deskripsi dari langkah"
                     value={item.description}
                     rows={2}
@@ -575,102 +625,76 @@ const TransportationForm: React.FC = () => {
               })}
             </div>
           </div>
-          
-
+        
           {/* Tips */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Tips</h2>
               <button
+                disabled={isLoadingForm}
                 type="button"
                 onClick={() => addArrayItemTips()}
-                className="text-primary hover:text-primary-dark flex items-center"
+                className={`text-primary hover:text-primary-dark flex items-center ${isLoadingForm ? "cursor-not-allowed" : ""}`}
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Tambah
               </button>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-3 mb-6">
             {
               id && tipsUpdate.map((item, index) => {
               return (
+              !tipsDeletedTemp.find(val => val === item.id) &&
               <div key={index} className="flex items-center space-x-2 ">
                 <input
-                  disabled={!(item.id === editTipsId)}
+                  disabled={isLoadingForm}
                   type="text"
                   value={item.tip}
-                  onChange={(e) => handleArrayChangeTipsUpdate(index, "tip", e.target.value)}
-                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${item.id !== editTipsId ?"cursor-not-allowed" : ""}`}
+                  onChange={(e) => {
+                    handleArrayChangeTipsUpdate(index, "tip", e.target.value);
+                    if(!tipsUpdatedTemp.includes(index)) {
+                      addArrayItemTipsUpdatedTemp(index);
+                    }
+                  }}
+                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                   placeholder="Tips terkait transportasi"
+                  required
                 />
                 <button
-                      key={`button-tips-edit-${index}`}
-                      type="button"
-                      onClick={() => {
-                        setEditTipsId(prev => prev === item.id ? 0 : item.id);
-                        if(editTipsId === item.id && editTipsId !== 0) {
-                          setIsLoading(true);
-                          updateTransportationTips(item.id, tipsUpdate[index], user.token as string)
-                          .then(() => {
-                            toast.success("Tips berhasil diperbarui.");
-                            showTransportation(idTransportation);
-                          })
-                          .catch((err) => {
-                            if(err instanceof ApiError) {
-                              toast.error(`Tips gagal diperbarui. Error : ${err.message}`);
-                              console.error(err.errors);
-                            }
-                          });
-                        }
-                      }}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                     { item.id === editTipsId ? <Check className="h-3 w-3" />  : <Pen className="h-3 w-3" />}
-                </button>
-                <button
-                      key={`button-tips-delete-${index}`}
-                      type="button"
-                      onClick={() => {
-                        if(item.id === editTipsId) {
-                          setEditTipsId(0);
-                        } else {
-                          setIsLoading(true);
-                          deleteTips(item.id,user.token as string)
-                          .then(() => {
-                            showTransportation(Number(id));
-                          }).catch(err => {
-                            handleApiError(err);
-                          });
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      {item.id === editTipsId ? <Ban className="h-3 w-3" /> : <X className="h-4 w-4" />}
+                  key={`button-tips-delete-${index}`}
+                  type="button"
+                  onClick={() => {
+                    addArrayItemTipsDeletedTemp(item.id);
+                  }}
+                  className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  disabled={isLoadingForm}
+                >
+                  <X className="h-4 w-4" />
                 </button>
               </div>)
               }) 
             }
-            {id && tips.length >= 1 && <p className="font-semibold text-md pt-4">Tambah Tips Baru</p>}
             {
               tips.map((specialty, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <input
+                    disabled={isLoadingForm}
                     type="text"
                     value={specialty}
                     onChange={(e) => handleArrayChangeTips(index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                     placeholder="Tips terkait transportasi"
+                    required
                   />
-                  {tips.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItemTips(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    disabled={isLoadingForm}
+                    type="button"
+                    onClick={() => removeArrayItemTips(index)}
+                    className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               ))
             }
@@ -678,23 +702,38 @@ const TransportationForm: React.FC = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
+          {<div className="flex justify-end space-x-4">
             <button
+              disabled={isLoadingForm}
               type="button"
               onClick={() => navigate('/admin/transportations')}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
+              className={`px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
             >
               Batal
             </button>
             <button
+              disabled={isLoadingForm}
               type="submit"
-              disabled={isSaving}
-              className="px-6 py-2 bg-primary hover:bg-primary-dark text-white rounded-md flex items-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
             >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Menyimpan...' : isEdit ? 'Update' : 'Simpan'}
+              {isLoadingForm ?
+                <>
+                  <ClipLoader
+                    color={"#ffff"}
+                    loading={true}
+                    size={20}
+                    className="mr-2"
+                  />
+                  <span>Memproses...</span>
+                </>
+                :
+                <>
+                  <Save className="mr-2 h-5 w-5" />
+                  {id ? "Edit" : "Simpan"}
+                </>
+                }
             </button>
-          </div>
+          </div>}
         </form>
         </>
         :

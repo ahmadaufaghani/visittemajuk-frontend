@@ -6,7 +6,7 @@ export interface Specialty {
 
 export interface Gallery {
     id: number,
-    image: string,
+    image: string | File,
     culinary_id: number
 }
 

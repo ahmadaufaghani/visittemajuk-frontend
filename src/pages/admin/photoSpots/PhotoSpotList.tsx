@@ -1,14 +1,15 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Edit, Eye, GalleryThumbnails, MoveUpRight, Plus, Search, Trash2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { PuffLoader } from 'react-spinners';
+import { ClipLoader, PuffLoader } from 'react-spinners';
 import { useAuth } from '../../../contexts/authContextValue';
 import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 import { showConfirm } from '../../../utils/confirm';
 import { usePhotoSpots } from '../../../hooks/usePhotoSpots';
-import { deletePhotoSpot } from '../../../services/photoSpotsApi';
+import { createPhotoSpotsBanner, deletePhotoSpot, getPhotoSpotsBanner, updatePhotoSpotsBanner } from '../../../services/photoSpotsApi';
 import { storageUrl } from '../../../utils/storageUrl';
+import { useOverlay } from '../../../contexts/OverlayContext';
 
 const PhotoSpotList: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<number>(0);
@@ -16,7 +17,18 @@ const PhotoSpotList: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const { token } = useAuth();
+  const [id, setId] = useState<number>(0);
+  const [title, setTitle] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [menu, setMenu] = useState<string>('');
+  const [image, setImage] = useState<File | string>('');
+  const [preview, setPreview] = useState<string>('');
+  const [isLoadingBanner, setIsLoadingBanner] = useState<boolean>(false);
+  const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
+  const overlay = useOverlay();
   const handleApiError = useApiErrorHandler();
+  const fileRef = useRef<HTMLInputElement|null>(null);
+
 
   const { photoSpots, isLoading, error, reload, meta } = usePhotoSpots({
     admin: true,
@@ -29,6 +41,76 @@ const PhotoSpotList: React.FC = () => {
       perPage: 5,
     },
   });
+
+  const handleReset = () => {
+    if(id) {
+      setId(0);
+    }
+    setTitle('');
+    setDescription('');
+    setImage('');
+    setPreview('');
+    if (fileRef.current) {
+      fileRef.current.value = "";
+      fileRef.current.type = "text";
+      fileRef.current.type = "file";
+    }
+  }
+
+  const getBannerData = async () => {
+    try {
+      setIsLoadingBanner(true);
+      const [res] = await getPhotoSpotsBanner();
+      if(res) {
+        setId(res.id);
+        setTitle(res.title);
+        setDescription(res.description);
+        setMenu(res.menu);
+        setImage(res.image);
+      }
+
+      setIsLoadingBanner(false);
+    } catch (err) {
+        setIsLoadingBanner(false);
+        handleApiError(err);
+    }
+  }
+
+  const createBannerData = async () => {
+    try {
+      setIsLoadingForm(true);
+      const formBody = new FormData();
+      formBody.append("title", title);
+      formBody.append("description", description);
+      formBody.append("menu","spotfoto");
+      formBody.append("image", image);
+      await createPhotoSpotsBanner(formBody, token as string);
+      handleReset();
+      setIsLoadingForm(false);
+      toast.success("Banner berhasil ditambahkan.");
+    } catch (err) {
+        setIsLoadingForm(false);
+        handleApiError(err);
+    }
+  }
+
+  const updateBannerData = async (id: number) => {
+    try {
+      setIsLoadingForm(true);
+      const formBody = new FormData();
+      formBody.append("title", title);
+      formBody.append("description", description);
+      formBody.append("menu",menu);
+      formBody.append("image", image);
+      await updatePhotoSpotsBanner(id, formBody, token as string);
+      handleReset();
+      setIsLoadingForm(false);
+      toast.success("Banner berhasil diperbarui.");
+    } catch (err) {
+        setIsLoadingForm(false);
+        handleApiError(err);
+    }
+  }
 
   const handleDelete = async (id: string) => {
     showConfirm({
@@ -52,17 +134,201 @@ const PhotoSpotList: React.FC = () => {
 
   const categories = [...new Set(meta.filters.categories.map((value) => value))];
 
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(preview);
+    }
+  },[preview])
+
+  useEffect(()=> {
+    handleReset();
+  }, [overlay.statusDialogForm])
+
   return (
     <div className="space-y-6">
+      <div className={`bg-white rounded-lg p-6 left-[20%] translate-x-[-15%] top-[50%] translate-y-[-50%] sm:left-[50%] sm:translate-x-[-50%] xl:left-[55%] xl:translate-x-[-40%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "fixed" : "hidden"}`}>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          if(!menu) {
+            await createBannerData();
+          } else {
+            await updateBannerData(id);
+          }
+          overlay.changeStatusDialogForm(false);
+          overlay.changeStatus(false);
+        }}>
+          <div className="flex flex-col gap-4">
+              <div>
+                <span className="font-bold text-xl">Data Banner Menu Spot Foto</span>
+              </div>
+              {
+                !isLoadingBanner 
+                ? 
+                <>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Judul *
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      required
+                      placeholder="Masukkan judul banner"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Gambar *
+                    </label>
+                    <div className="flex flex-col gap-4">
+                      {preview || id && image  ? (
+                        <img
+                          src={preview ? preview : storageUrl(image as string)}
+                          alt="Pratinjau gambar utama"
+                          className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
+                        />
+                      ) : (
+                        <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
+                          Belum ada gambar
+                        </div>
+                      )}
+                      <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors w-fit">
+                        <Upload className="h-4 w-4" />
+                        <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
+                        <input
+                          type="file"
+                          name="image"
+                          ref={el => {
+                            if(!el) {
+                              return;
+                            }
+
+                            fileRef.current = el;
+
+                            if(typeof image !== "string") {
+                              const dt = new DataTransfer();
+                              dt.items.add(image);
+
+                              fileRef.current.files = dt.files;
+                            }
+                          }}
+                          onChange={(e) => {
+                              const target = e.target as HTMLInputElement & {
+                                files: FileList;
+                              }
+                              setImage(target.files[0]);
+                              const objectUrl = URL.createObjectURL(target.files[0]);
+                              setPreview(objectUrl);
+                          }}
+                          className="hidden"
+                          required={id === 0}
+                        />
+                      </label>
+                      {!id ? (
+                        <p className="text-xs text-gray-500">Wajib diisi untuk spot foto baru. Maks 1 MB. Format: JPG, JPEG, WebP.</p>
+                      ) : (
+                        <p className="text-xs text-gray-500">Kosongkan jika tidak ingin mengubah gambar. Format: JPG, JPEG, WebP. Maks 1 MB.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Deskripsi *
+                    </label>
+                    <textarea
+                        name="description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={4}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                        required
+                        placeholder="Masukkan deskripsi banner"
+                      />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                    type="button"
+                    onClick={() => {
+                      overlay.changeStatusDialogForm(false);
+                      overlay.changeStatus(false);
+                      handleReset();
+                    }}
+                    className={`border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    disabled={isLoadingForm}
+                    >
+                      Tutup
+                    </button>
+                   <button
+                    type="submit"
+                    disabled={isLoadingForm}
+                    className="inline-flex items-center bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-md shadow transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                  {isLoadingForm ?
+                  <>
+                    <ClipLoader
+                      color={"#ffff"}
+                      loading={true}
+                      size={20}
+                      className="mr-2"
+                    />
+                    <span>Mengunggah...</span>
+                  </>
+                  :
+                  <>
+                    {id ? "Edit Menu Spot Foto": "Tambah Menu Spot Foto"}
+                  </>
+                  }
+                  </button>
+                </div>
+                </>
+                :
+                <div className="flex flex-col gap-2 items-center">
+                    <ClipLoader
+                      color={"#000"}
+                      loading={true}
+                      size={20}
+                      className="mb-2"
+                    />
+                    <span>Memuat data banner...</span>
+                </div>
+              }
+            </div>
+        </form>
+      </div>
+
       <div className="space-y-4 sm:flex sm:justify-between sm:items-center">
         <h1 className="text-2xl font-bold text-gray-800">Manajemen Spot Foto</h1>
-        <Link
-          to="/admin/photo-spots/add"
-          className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
-        >
-          <Plus className="h-4 w-4" />
-          Tambah Spot Foto
-        </Link>
+        <div className="flex flex-col items-end sm:flex-row sm:items-center sm:justify-end gap-2">
+          <button
+            onClick={async ()=> {
+              overlay.changeStatus(true);
+              overlay.changeStatusDialogForm(true);
+              await getBannerData();
+            }}
+            className="bg-blue-800 hover:bg-blue-950 text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
+          >
+            <GalleryThumbnails className="h-4 w-4" />
+            Banner
+          </button>
+          <Link
+            to="/foto"
+            target="_blank"
+            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
+          >
+            <MoveUpRight className="h-4 w-4" />
+            Kunjungi
+          </Link>
+          <Link
+            to="/admin/photo-spots/add"
+            className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Spot Foto
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-6">
