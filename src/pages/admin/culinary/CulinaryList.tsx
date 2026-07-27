@@ -24,9 +24,11 @@ const CulinaryList: React.FC = () => {
   const [page, setPage] = useState<number>(1);
   const [isLoadingBanner, setIsLoadingBanner] = useState<boolean>(false);
   const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
+  const handleApiError = useApiErrorHandler();
   const overlay = useOverlay();
   const user = useAuth();
-  const handleApiError = useApiErrorHandler();
+  const fileRef = useRef<HTMLInputElement|null>(null);
+
 
   const {culinaries, isLoading: isLoadingCulinary, error, reload, meta} = useCulinaries({params:{
     search : searchTerm,
@@ -53,7 +55,7 @@ const CulinaryList: React.FC = () => {
   const getBannerData = async () => {
     try {
       setIsLoadingBanner(true);
-      const [res] = await getCulinaryBanner()
+      const [res] = await getCulinaryBanner();
 
       if(res) {
         setId(res.id);
@@ -125,7 +127,6 @@ const CulinaryList: React.FC = () => {
   const pagination = meta.pagination;
   const canGoToPreviousPage = pagination.current_page > 1;
   const canGoToNextPage = pagination.current_page < pagination.last_page;
-  const fileRef = useRef<HTMLInputElement|null>(null);
 
   const categories = [...new Set(meta.filters.categories.map(val => val))];
 
@@ -146,13 +147,11 @@ const CulinaryList: React.FC = () => {
         e.preventDefault();
         if(!menu) {
           await createBannerData();
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
         } else {
           await updateBannerData(id);
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
         }
+        overlay.changeStatusDialogForm(false);
+        overlay.changeStatus(false);
       }}>
         <div className="flex flex-col gap-4">
             <div>

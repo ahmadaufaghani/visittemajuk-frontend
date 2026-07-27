@@ -60,7 +60,7 @@ const PhotoSpotList: React.FC = () => {
   const getBannerData = async () => {
     try {
       setIsLoadingBanner(true);
-      const [res] = await getPhotoSpotsBanner()
+      const [res] = await getPhotoSpotsBanner();
       if(res) {
         setId(res.id);
         setTitle(res.title);
@@ -107,7 +107,7 @@ const PhotoSpotList: React.FC = () => {
       setIsLoadingForm(false);
       toast.success("Banner berhasil diperbarui.");
     } catch (err) {
-      setIsLoadingForm(false);
+        setIsLoadingForm(false);
         handleApiError(err);
     }
   }
@@ -151,13 +151,11 @@ const PhotoSpotList: React.FC = () => {
           e.preventDefault();
           if(!menu) {
             await createBannerData();
-            overlay.changeStatusDialogForm(false);
-            overlay.changeStatus(false);
           } else {
             await updateBannerData(id);
-            overlay.changeStatusDialogForm(false);
-            overlay.changeStatus(false);
           }
+          overlay.changeStatusDialogForm(false);
+          overlay.changeStatus(false);
         }}>
           <div className="flex flex-col gap-4">
               <div>

@@ -79,7 +79,7 @@ const DestinationList: React.FC = () => {
     const getBannerData = async () => {
       try {
         setIsLoadingBanner(true);
-        const [res] = await getDestinationBanner()
+        const [res] = await getDestinationBanner();
         if(res) {
           setId(res.id);
           setTitle(res.title);
@@ -177,13 +177,11 @@ const DestinationList: React.FC = () => {
         e.preventDefault();
         if(!menu) {
           await createBannerData();
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
         } else {
           await updateBannerData(id);
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
         }
+        overlay.changeStatusDialogForm(false);
+        overlay.changeStatus(false);
         }}>
           <div className="flex flex-col gap-4">
               <div>

@@ -1,5 +1,5 @@
 import React, { useState, Fragment, useEffect, useRef } from 'react';
-import { Edit, Trash2, Plus, ChevronDown, ChevronUp, MoveUpRight } from 'lucide-react';
+import { Edit, Trash2, Plus, ChevronDown, ChevronUp, MoveUpRight, Upload } from 'lucide-react';
 import { useAuth } from '../../../contexts/authContextValue';
 import { PuffLoader } from "react-spinners";
 import { createAdditionalCulinary, deleteAdditionalCulinary, getAdditionalCulinaries, updateAdditionalCulinary } from '../../../services/culinariesApi';
@@ -17,7 +17,7 @@ const AdditionalCulinaryList: React.FC = () => {
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [image, setImage] = useState< File | string >();
+  const [image, setImage] = useState< File | string >('');
   const user = useAuth();
   const imageFile = useRef<HTMLInputElement | null>(null);
   const [preview, setPreview] = useState<string>('');
@@ -51,9 +51,8 @@ const AdditionalCulinaryList: React.FC = () => {
         imageFile.current.type = "file";
       }
     } catch (err) {
-      handleApiError(err);
-    } finally {
       setIsLoading(false);
+      handleApiError(err);
     }
   }
 
@@ -77,9 +76,8 @@ const AdditionalCulinaryList: React.FC = () => {
         imageFile.current.type = "file";
       }
     } catch (err) {
-      handleApiError(err);
-    } finally {
       setIsLoading(false);
+      handleApiError(err);
     }
   }
 
@@ -95,7 +93,6 @@ const AdditionalCulinaryList: React.FC = () => {
 
   useEffect(()=>{
     getAdditionalCulinariesData();
-
   },[])
 
   useEffect(() => {
@@ -118,7 +115,7 @@ const AdditionalCulinaryList: React.FC = () => {
         imageFile.current.type = "file";
       }
     }
-  },[overlay.statusDialogForm]) // eslint-disable-line react-hooks/exhaustive-deps
+  },[overlay.statusDialogForm])
  
   return (
     <>
@@ -160,32 +157,55 @@ const AdditionalCulinaryList: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Gambar *
               </label>
-              {preview || id && image ? 
-                <img
-                  src={preview ? preview : storageUrl(image as string)}
-                  className='mb-4 w-32'
-                />
-                :
-                <></>
-              }
-              <input
-                  type="file"
-                  name="image"
-                  accept="image/jpeg,image/webp"
-                  ref={imageFile}
-                  onChange={(e) => {
-                      const target = e.target as HTMLInputElement & {
-                        files: FileList;
+              <div className="flex flex-col gap-4">
+                {preview || id && image  ? (
+                  <img
+                    src={preview ? preview : storageUrl(image as string)}
+                    alt="Pratinjau gambar utama"
+                    className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
+                  />
+                ) : (
+                  <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
+                    Belum ada gambar
+                  </div>
+                )}
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors w-fit">
+                  <Upload className="h-4 w-4" />
+                  <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
+                  <input
+                    type="file"
+                    name="image"
+                    ref={el => {
+                      if(!el) {
+                        return;
                       }
-                      setImage(target.files[0]);
-                      const objectUrl = URL.createObjectURL(target.files[0]);
-                      setPreview(objectUrl);
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required={id === 0}
-              />
-              <div>
-                <span className="text-xs text-red-700">*ext: .jpg, .jpeg, .webp; max: 1 MB</span>
+
+                      imageFile.current = el;
+
+                      if(typeof image !== "string") {
+                        const dt = new DataTransfer();
+                        dt.items.add(image);
+
+                        imageFile.current.files = dt.files;
+                      }
+                    }}
+                    onChange={(e) => {
+                        const target = e.target as HTMLInputElement & {
+                          files: FileList;
+                        }
+                        setImage(target.files[0]);
+                        const objectUrl = URL.createObjectURL(target.files[0]);
+                        setPreview(objectUrl);
+                    }}
+                    className="hidden"
+                    required={id === 0}
+                  />
+                </label>
+                {!id ? (
+                  <p className="text-xs text-gray-500">Wajib diisi untuk spot foto baru. Maks 1 MB. Format: JPG, JPEG, WebP.</p>
+                ) : (
+                  <p className="text-xs text-gray-500">Kosongkan jika tidak ingin mengubah gambar. Format: JPG, JPEG, WebP. Maks 1 MB.</p>
+                )}
               </div>
             </div>
             <div className="flex-1">

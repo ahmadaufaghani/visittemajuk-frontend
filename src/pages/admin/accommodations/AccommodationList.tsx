@@ -9,7 +9,6 @@ import { Search, Edit, Trash2, Plus, Eye, ChevronLeft, ChevronRight, Hotel, Uplo
 import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
 import { useOverlay } from '../../../contexts/OverlayContext';
-import { ApiError } from '../../../lib/api';
 import { ClipLoader } from 'react-spinners';
 
 const AccommodationList: React.FC = () => {
@@ -80,7 +79,7 @@ const AccommodationList: React.FC = () => {
   const getBannerData = async () => {
     try {
       setIsLoadingBanner(true);
-      const [res] = await getAccomodationBanner()
+      const [res] = await getAccomodationBanner();
       
       if(res) {
         setId(res.id);
@@ -91,12 +90,9 @@ const AccommodationList: React.FC = () => {
       }
       
       setIsLoadingBanner(false);
-
     } catch (err) {
-      setIsLoadingBanner(false);
-      if(err instanceof ApiError) {
-        console.error(err.errors);
-      }
+        setIsLoadingBanner(false);
+        handleApiError(err);
     }
   }
 
@@ -113,11 +109,8 @@ const AccommodationList: React.FC = () => {
       setIsLoadingForm(false);
       toast.success("Banner berhasil ditambahkan.");
     } catch (err) {
-      setIsLoadingForm(false);
-      if(err instanceof ApiError) {
-        toast.error("Banner gagal ditambahkan.");
-        console.error(err.errors);
-      }
+        setIsLoadingForm(false);
+        handleApiError(err);
     }
   }
 
@@ -134,11 +127,8 @@ const AccommodationList: React.FC = () => {
       setIsLoadingForm(false);
       toast.success("Banner berhasil diperbarui.");
     } catch (err) {
-      setIsLoadingForm(false);
-      if(err instanceof ApiError) {
-        toast.error("Banner gagal diperbarui.");
-        console.error(err.errors);
-      }
+        setIsLoadingForm(false);
+        handleApiError(err);
     }
   }
 
@@ -187,13 +177,11 @@ const AccommodationList: React.FC = () => {
         e.preventDefault();
         if(!menu) {
           await createBannerData();
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
         } else {
           await updateBannerData(id);
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
         }
+        overlay.changeStatusDialogForm(false);
+        overlay.changeStatus(false);
       }}>
         <div className="flex flex-col gap-4">
             <div>

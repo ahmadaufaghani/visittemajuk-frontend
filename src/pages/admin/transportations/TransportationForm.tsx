@@ -45,7 +45,7 @@ const TransportationForm: React.FC = () => {
   const showTransportation = async (id: number) => {
     try {
       setIsLoading(true);
-      const res = await getTransportation(id)
+      const res = await getTransportation(id);
       setIdTransportation(res.id);
       setTitle(res.title);
       setDescription(res.description);
@@ -57,6 +57,7 @@ const TransportationForm: React.FC = () => {
       setTipsUpdate(res.transportation_tips);
       setIsLoading(false);
     } catch (err) {
+        setIsLoading(false);
         handleApiError(err);
     }
   }
@@ -72,17 +73,12 @@ const TransportationForm: React.FC = () => {
       formBody.append("estimated_cost", estimatedCost.trim());
       formBody.append("estimated_time", estimatedTime.trim());
 
-      const res = await createTransportation(formBody,user.token as string)
+      const res = await createTransportation(formBody,user.token as string);
       toast.success("Transportasi berhasil ditambahkan.");
       addStepsData(res.id);
       addTipsData(res.id);
-      setIsLoadingForm(false);
     } catch (err) {
-      setIsLoadingForm(false);
-        if(err instanceof ApiError) {
-          toast.error(`Transportasi gagal ditambahkan. Error : ${err.message}`);
-          console.error(err.errors);
-        }
+        handleApiError(err);
     }
   }
 
@@ -96,13 +92,10 @@ const TransportationForm: React.FC = () => {
             vehicle: val.vehicle.trim(), 
             transportation_id: id
           }, 
-          user.token as string)
+          user.token as string);
           toast.success("Langkah baru berhasil ditambahkan.");
         } catch (err) {
-          if(err instanceof ApiError) {
-            toast.error(`Langkah baru gagal ditambahkan. Error : ${err.message}`);
-            console.error(err.errors);
-          }
+            handleApiError(err);
         }
       });
   }
@@ -113,7 +106,7 @@ const TransportationForm: React.FC = () => {
           await createTips({
             tip: val.trim(), 
             transportation_id: id
-          }, user.token as string)
+          }, user.token as string);
           toast.success("Tips baru berhasil ditambahkan.");
         } catch (err) {
           if(err instanceof ApiError) {
@@ -129,13 +122,13 @@ const TransportationForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
-      formBody.append("title",title);
-      formBody.append("description",description);
+      formBody.append("title",title.trim());
+      formBody.append("description",description.trim());
       formBody.append("image",image!);
-      formBody.append("difficulty", difficulty);
-      formBody.append("estimated_cost", estimatedCost);
-      formBody.append("estimated_time", estimatedTime);
-      await updateTransportation(id, formBody, user.token as string)
+      formBody.append("difficulty", difficulty.trim());
+      formBody.append("estimated_cost", estimatedCost.trim());
+      formBody.append("estimated_time", estimatedTime.trim());
+      await updateTransportation(id, formBody, user.token as string);
       toast.success("Transportasi berhasil diperbarui.");
       addStepsData(id);
       addTipsData(id);
@@ -155,7 +148,7 @@ const TransportationForm: React.FC = () => {
           const steps = stepsUpdate[val];
   
           if(!stepsDeletedTemp.find(val => val === steps.id)) {
-            await updateTransportationSteps(steps.id, {description:steps.description, duration: steps.duration, cost: steps.cost, vehicle: steps.vehicle, transportation_id: steps.transportation_id}, user.token as string)
+            await updateTransportationSteps(steps.id, {description:steps.description.trim(), duration: steps.duration.trim(), cost: steps.cost.trim(), vehicle: steps.vehicle.trim(), transportation_id: steps.transportation_id}, user.token as string);
             toast.success("Langkah baru berhasil diperbarui.");
           }
         } catch (err) {
@@ -171,7 +164,7 @@ const TransportationForm: React.FC = () => {
         const tips = tipsUpdate[val];
         
         if(!tipsDeletedTemp.find(val => val === tips.id)) {
-          await updateTransportationTips(tips.id, {tip: tips.tip, transportation_id: tips.transportation_id}, user.token as string)
+          await updateTransportationTips(tips.id, {tip: tips.tip.trim(), transportation_id: tips.transportation_id}, user.token as string);
           toast.success("Tips berhasil diperbarui.");  
         }
       } catch (err) {
@@ -184,7 +177,7 @@ const TransportationForm: React.FC = () => {
   const deleteStepsData = () => {
     stepsDeletedTemp.map(async (val) => {
       try {
-        await deleteSteps(val, user.token as string)
+        await deleteSteps(val, user.token as string);
         toast.success("Langkah berhasil dihapus.");
       } catch (err) {
         handleApiError(err);
@@ -195,7 +188,7 @@ const TransportationForm: React.FC = () => {
   const deleteTipsData = () => {
     tipsDeletedTemp.map(async (val) => {
       try {
-        await deleteTips(val, user.token as string)
+        await deleteTips(val, user.token as string);
         toast.success("Tips berhasil dihapus.");
       } catch (err) {
         handleApiError(err);
@@ -255,11 +248,10 @@ const TransportationForm: React.FC = () => {
     e.preventDefault();
     if(idTransportation) {
       await updateTransportationData(idTransportation);
-      navigate('/admin/transportations', {replace : true});
     } else {
       await addTransportationData();
-      navigate('/admin/transportations', {replace : true});
     }
+    navigate('/admin/transportations', {replace : true});
   };
   
   useEffect(() => {
@@ -722,7 +714,7 @@ const TransportationForm: React.FC = () => {
             <button
               disabled={isLoadingForm}
               type="submit"
-              className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300"
+              className={`inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
             >
               {isLoadingForm ?
                 <>

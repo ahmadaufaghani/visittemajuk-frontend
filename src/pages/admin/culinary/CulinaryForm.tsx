@@ -47,7 +47,7 @@ const CulinaryForm: React.FC = () => {
   const showCulinary = async (id: number) => {
     try {
       setIsLoading(true);
-      const res = await getCulinary(String(id))
+      const res = await getCulinary(String(id));
       setIdCulinary(res.id);
       setTitle(res.title);
       setDescription(res.description);
@@ -58,12 +58,13 @@ const CulinaryForm: React.FC = () => {
       setLocation(res.location);
       setLocationMap(res.location_map ?? "");
       setOpenHours(res.open_hours);
-      setContact(res.contact || '');
+      setContact(res.contact || "");
       setSpecialtiesUpdate(res.specialties);
       setGalleriesUpdate(res.culinary_galleries);
       setIsLoading(false);
     } catch (err) {
-      handleApiError(err);
+        setIsLoading(false);
+        handleApiError(err);
     }
   }
 
@@ -86,10 +87,8 @@ const CulinaryForm: React.FC = () => {
       addSpecialtiesData(res.id);
       addGalleriesData(res.id);
     } catch (err) {
-      setIsLoadingForm(false);
       if(err instanceof ApiError) {
-        toast.error(`Kuliner gagal ditambahkan. Error : ${err.message}`);
-        console.error(err.errors);
+        handleApiError(err.errors);
       }
     }
   }
@@ -97,13 +96,10 @@ const CulinaryForm: React.FC = () => {
   const addSpecialtiesData = (id: number) => {
       specialties.map(async (val) => {
         try {
-          await createSpeciality({menu: val, culinary_id: id}, user.token as string);
+          await createSpeciality({menu: val.trim(), culinary_id: id}, user.token as string);
           toast.success("Menu spesial berhasil ditambahkan.");
         } catch (err) {
-          if(err instanceof ApiError) {
-            toast.error(`Menu spesial gagal ditambahkan. Error: ${err.message}`);
-            console.error(err.errors);
-          }
+            handleApiError(err);
         }
       });
   }
@@ -117,10 +113,7 @@ const CulinaryForm: React.FC = () => {
           await createGallery(formGallery, user.token as string);
           toast.success("Galeri berhasil ditambahkan.");
         } catch (err) {
-            if(err instanceof ApiError) {
-            toast.error(`Galeri gagal ditambahkan. Error: ${err.message}`);
-            console.error(err.errors);
-          }
+            handleApiError(err);
         }
       });
   }
@@ -151,10 +144,7 @@ const CulinaryForm: React.FC = () => {
       
     } catch (err) {
         setIsLoadingForm(false);
-        if(err instanceof ApiError) {
-        toast.error(`Kuliner gagal diperbarui. Error : ${err.message}`);
-        console.error(err.errors);
-      }
+        handleApiError(err);
     }
   }
 
@@ -165,16 +155,13 @@ const CulinaryForm: React.FC = () => {
 
         if(!specialtiesDeletedTemp.find(val => val === specialty.id)) {
           await updateSpeciality(specialtiesUpdate[val].id, {
-            menu: specialtiesUpdate[val].menu,
+            menu: specialtiesUpdate[val].menu.trim(),
             culinary_id: id
           }, user.token as string);
           toast.success("Menu spesial berhasil diperbarui.");
         }
       } catch (err) {
-          if(err instanceof ApiError) {
-            toast.error(`Menu spesial gagal diperbarui. Error: ${err.message}`);
-            console.error(err.errors);
-          }
+          handleApiError(err);
       }
     });
   }
@@ -185,10 +172,7 @@ const CulinaryForm: React.FC = () => {
         await deleteSpeciality(val, user.token as string);
         toast.success("Menu spesial berhasil dihapus.");
       } catch (err) {
-          if(err instanceof ApiError) {
-            toast.error(`Menu spesial gagal dihapus. ${err.message}`);
-            console.error(err.errors);
-          }
+          handleApiError(err);
       }
     });
   }
@@ -199,10 +183,7 @@ const CulinaryForm: React.FC = () => {
         deleteGallery(val, user.token as string);
         toast.success("Galeri berhasil dihapus.");
       } catch (err) {
-          if(err instanceof ApiError) {
-            toast.error(`Galeri gagal dihapus. ${err.message}`);
-            console.error(err.errors);
-          }
+          handleApiError(err);
       }
     });
   }
@@ -253,11 +234,10 @@ const CulinaryForm: React.FC = () => {
     e.preventDefault();
     if(idCulinary) {
       await updateCulinaryData(idCulinary);
-      navigate('/admin/culinary', {replace : true});
     } else {
       await addCulinaryData();
-      navigate('/admin/culinary', {replace : true});
     }
+    navigate('/admin/culinary', {replace : true});
   };
 
   
@@ -682,14 +662,14 @@ const CulinaryForm: React.FC = () => {
               disabled={isLoadingForm}
               type="button"
               onClick={() => navigate('/admin/culinary')}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200"
+              className={`px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
             >
               Batal
             </button>
             <button
               disabled={isLoadingForm}
               type="submit"
-              className="inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300"
+              className={`inline-flex items-center bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-colors duration-300 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
             >
               {isLoadingForm ?
                 <>

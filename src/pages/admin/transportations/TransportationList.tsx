@@ -146,13 +146,11 @@ const TransportationList: React.FC = () => {
           e.preventDefault();
           if(!menu) {
             await createBannerData();
-            overlay.changeStatusDialogForm(false);
-            overlay.changeStatus(false);
           } else {
             await updateBannerData(id);
-            overlay.changeStatusDialogForm(false);
-            overlay.changeStatus(false);
           }
+          overlay.changeStatusDialogForm(false);
+          overlay.changeStatus(false);
         }}>
           <div className="flex flex-col gap-4">
               <div>
