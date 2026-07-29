@@ -21,6 +21,7 @@ const CulinaryForm: React.FC = () => {
   const user = useAuth();
   const handleApiError = useApiErrorHandler();
   const [idCulinary, setIdCulinary] = useState<number>(0);
+  const [idCulinaryTemp, setIdCulinaryTemp] = useState<number>(0);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [fullDescription, setFullDescription] = useState<string>("");
@@ -31,16 +32,23 @@ const CulinaryForm: React.FC = () => {
   const [locationMap, setLocationMap] = useState<string>("");
   const [openHours, setOpenHours] = useState<string>("");
   const [contact, setContact] = useState<string>("");
-  const [specialties, setSpecialities] = useState<string[]>([]);
-  const [galleries, setGalleries] = useState<File[]>([]);
+  const [specialties, setSpecialities] = useState<{index:number, menu:string}[]>([]);
+  const [galleries, setGalleries] = useState<{index: number, file:File}[]>([]);
   const [specialtiesUpdate, setSpecialtiesUpdate] = useState<Specialty[]>([]);
   const [specialtiesUpdatedTemp, setSpecialitiesUpdatedTemp] = useState<number[]>([]);
   const [specialtiesDeletedTemp, setSpecialtiesDeletedTemp] = useState<number[]>([]);
+  const [specialtiesDeletedTempPreview, setSpecialtiesDeletedTempPreview] = useState<number[]>([]);
   const [galleriesDeletedTemp, setGalleriesDeletedTemp] = useState<number[]>([]);
+  const [galleriesDeletedTempPreview, setGalleriesDeletedTempPreview] = useState<number[]>([]);
   const [galleriesUpdate, setGalleriesUpdate] = useState<Gallery[]>([]);
+  const [lastSpecialtySuccess, setLastSpecialtySuccess] = useState<number[]>([]);
+  const [culinaryState, setCulinaryState] = useState<boolean>(false);
+  const [specialtyState, setSpecialtyState] = useState<boolean>(false);
+  const [galleryState, setGalleryState] = useState<boolean>(false);
+  const [lastGallerySuccess, setLastGallerySuccess] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<{index: number, filename: string}[]>([]);
   const categories = ['Seafood', 'Indonesia', 'Kafe', 'Lokal', 'Tradisional'];
   const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
   
@@ -68,7 +76,7 @@ const CulinaryForm: React.FC = () => {
     }
   }
 
-  const addCulinaryData = async () => {
+  const addCulinaryData = async (): Promise<boolean|number> => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
@@ -83,42 +91,84 @@ const CulinaryForm: React.FC = () => {
       formBody.append("open_hours",openHours.trim());
       formBody.append("contact",contact.trim());
       const res = await createCulinary(formBody,user.token as string);
-      toast.success("Kuliner berhasil ditambahkan.")
-      addSpecialtiesData(res.id);
-      addGalleriesData(res.id);
+      toast.success("Kuliner berhasil ditambahkan.");
+      setIdCulinaryTemp(res.id);
+      setCulinaryState(true);
+      setIsLoadingForm(false);
+      return res.id;
     } catch (err) {
+      setIsLoadingForm(false);
       if(err instanceof ApiError) {
         handleApiError(err.errors);
       }
+      return false;
     }
   }
 
-  const addSpecialtiesData = (id: number) => {
-      specialties.map(async (val) => {
-        try {
-          await createSpeciality({menu: val.trim(), culinary_id: id}, user.token as string);
-          toast.success("Menu spesial berhasil ditambahkan.");
-        } catch (err) {
-            handleApiError(err);
+  const addSpecialtiesData = async (id: number): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        specialties.map(async (val, index) => {
+          if(!lastSpecialtySuccess.includes(val.index)) {
+            setLastSpecialtySuccess(prev => [...prev, val.index]);
+            return await createSpeciality({menu: val.menu.trim(), order: idCulinary && specialtiesUpdate.length > 0 ? specialtiesUpdate[specialtiesUpdate.length-1] && specialtiesUpdate[specialtiesUpdate.length-1].order + (index + 1) : index + 1, culinary_id: id}, user.token as string)
+            .catch((err) => {
+              setLastSpecialtySuccess(prev => prev.filter(item => item !== val.index));
+              if(err instanceof ApiError) {
+                  throw new Error(`Menu spesial gagal ditambahkan. Error: ${err.message}`);
+                }
+              });
+          }
+        })
+      );
+      setIsLoadingForm(false);
+      setSpecialtyState(true);
+      specialties.length > 0 && toast.success("Menu spesial berhasil ditambahkan.");
+      return true;
+      } catch (err) {
+        setIsLoadingForm(false);
+        if(err instanceof Error) {
+          toast.error(err.message);
         }
-      });
+        return false;
+    }
   }
 
-  const addGalleriesData = (id: number) => {
-      galleries.map(async (val) => {
-        try {
-          const formGallery = new FormData();
-          formGallery.append("image",val);
-          formGallery.append("culinary_id", String(id));
-          await createGallery(formGallery, user.token as string);
-          toast.success("Galeri berhasil ditambahkan.");
-        } catch (err) {
-            handleApiError(err);
-        }
-      });
+  const addGalleriesData = async (id: number): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        galleries.map(async (val, index) => {
+          if(!lastGallerySuccess.includes(val.index)) {
+            setLastGallerySuccess(prev => [...prev, val.index]);
+            const formGallery = new FormData();
+            formGallery.append("image",val.file);
+            formGallery.append("order", String(idCulinary && galleriesUpdate.length > 0 ? galleriesUpdate[galleriesUpdate.length-1] && galleriesUpdate[galleriesUpdate.length-1].order + (index + 1) : index + 1));
+            formGallery.append("culinary_id", String(id));
+            return await createGallery(formGallery, user.token as string)
+            .catch((err) => {
+              if(err instanceof ApiError) {
+                throw new Error(`Galeri gagal ditambahkan. Error: ${err.message}`);
+              }
+            });
+          }
+        })
+      );
+      setGalleryState(true);
+      setIsLoadingForm(false);
+      galleries.length > 0 && toast.success("Galeri berhasil ditambahkan.");
+      return true;
+      } catch (err) {
+          setIsLoadingForm(false);
+          if(err instanceof Error) {
+            toast.error(err.message);
+          }
+          return false;
+      }
   }
 
-  const updateCulinaryData = async (id : number) => {
+  const updateCulinaryData = async (id : number): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
@@ -135,65 +185,89 @@ const CulinaryForm: React.FC = () => {
   
       await updateCulinary(id, formBody, user.token as string);
       toast.success("Kuliner berhasil diperbarui.");
-
-      addSpecialtiesData(idCulinary);
-      addGalleriesData(idCulinary);
-      updateSpecialtiesData(idCulinary);
-      deleteSpecialtiesData();
-      deleteGalleriesData();
-      
+      setIsLoadingForm(false);
+      return true;
     } catch (err) {
         setIsLoadingForm(false);
         handleApiError(err);
+        return false;
     }
   }
 
-  const updateSpecialtiesData = (id: number) => {
-    specialtiesUpdatedTemp.map(async (val) => {
-      try {
-        const specialty = specialtiesUpdate[val];
-
-        if(!specialtiesDeletedTemp.find(val => val === specialty.id)) {
-          await updateSpeciality(specialtiesUpdate[val].id, {
-            menu: specialtiesUpdate[val].menu.trim(),
-            culinary_id: id
-          }, user.token as string);
-          toast.success("Menu spesial berhasil diperbarui.");
+  const updateSpecialtiesData = async (id: number): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        specialtiesUpdatedTemp.map((val) => {
+          const specialty = specialtiesUpdate[val];
+          
+          if(!specialtiesDeletedTemp.find(val => val === specialty.id)) {
+            setSpecialitiesUpdatedTemp(prev => prev.filter(item => item !== val));
+            return updateSpeciality(specialty.id, {
+              menu: specialty.menu.trim(),
+              order: specialty.order,
+              culinary_id: id
+            }, user.token as string)
+            .catch((err) => {
+              setSpecialitiesUpdatedTemp(prev => [...prev, val]);
+              if(err instanceof ApiError) {
+                throw new Error(`Menu spesial gagal diperbarui. Error: ${err.message}`);
+              }
+            });
+          }
+        })
+      );
+      setIsLoadingForm(false);
+      specialtiesUpdatedTemp.length > 0 && toast.success("Menu spesial berhasil diperbarui.");
+      return true;
+    } catch (err) {
+        if(err instanceof Error) {
+          toast.error(err.message);
         }
-      } catch (err) {
-          handleApiError(err);
-      }
-    });
+        return false;
+    }
   }
 
-  const deleteSpecialtiesData = () => {
-    specialtiesDeletedTemp.map(async (val) => {
-      try {
-        await deleteSpeciality(val, user.token as string);
-        toast.success("Menu spesial berhasil dihapus.");
-      } catch (err) {
-          handleApiError(err);
-      }
-    });
+  const deleteSpecialtiesData = async (): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        specialtiesDeletedTemp.map((val) => deleteSpeciality(val, user.token as string))
+      );
+      setIsLoadingForm(false);
+      specialtiesDeletedTemp.length > 0 && toast.success("Menu spesial berhasil dihapus.");
+      setSpecialtiesDeletedTemp([]);
+      return true;
+    } catch (err) {
+      setIsLoadingForm(false);
+      handleApiError(err);
+      return false;
+    }
   }
 
-  const deleteGalleriesData = () => {
-    galleriesDeletedTemp.map(async (val) => {
-      try {
-        deleteGallery(val, user.token as string);
-        toast.success("Galeri berhasil dihapus.");
-      } catch (err) {
-          handleApiError(err);
-      }
-    });
+  const deleteGalleriesData = async (): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        galleriesDeletedTemp.map((val) => deleteGallery(val, user.token as string))
+      );
+      setIsLoadingForm(false);
+      galleriesDeletedTemp.length > 0 && toast.success("Galeri berhasil dihapus.");
+      setGalleriesDeletedTemp([]);
+      return true;
+    } catch (err) {
+        setIsLoadingForm(false);
+        handleApiError(err);
+        return false;
+    }
   }
 
   const addArrayItemSpecialties = () => {
-    setSpecialities(prev => [...prev, '']);
+    setSpecialities(prev => [...prev, {index:0, menu:''}]);
   }
 
-  const addArrayItemGalleries = (val: File) => {
-    setGalleries(prev => [...prev, val]);
+  const addArrayItemGalleries = (i: number, val: File) => {
+    setGalleries(prev => [...prev, {index: i, file: val}]);
   }
 
   const addArraySpecialitiesUpdatedTemp = (val: number) => {
@@ -202,14 +276,23 @@ const CulinaryForm: React.FC = () => {
 
   const addArrayDeletedSpecialitiesTemp = (val: number) => {
     setSpecialtiesDeletedTemp(prev => [...prev, val]);
+    setSpecialtiesDeletedTempPreview(prev => [...prev, val]);
   }
 
   const addArrayDeletedGalleriesTemp = (val: number) => {
     setGalleriesDeletedTemp(prev => [...prev, val]);
+    setGalleriesDeletedTempPreview(prev => [...prev, val]);
   }
 
   const handleArrayChangeSpecialties = (index: number, value: string) => {
-    setSpecialities(specialties.map((item, i) => i === index ? value : item));
+    setSpecialities(specialties.map((item, i) => i === index ? {
+    index:
+      specialties.length > 0 
+      ? 
+      specialties[index].index !== 0 ? specialties[index].index :  specialties[specialties.length - 1 ].index + index + 1 
+      : 
+      specialties.length + 1,
+    menu:value}  : item));
   };
 
 
@@ -222,22 +305,48 @@ const CulinaryForm: React.FC = () => {
   }
 
   const removeArrayItemGalleries = (index: number) => {
-    setGalleries(galleries.filter((_, i) => i !== index));
+    setLastGallerySuccess(prev => prev.filter(item => item !== index));
+    setGalleries(galleries.filter((val) => val.index !== index));
   }
 
   const removeArrayItemGalleriesPreview = (index: number) => {
-    URL.revokeObjectURL(previews[index]);
-    setPreviews(previews.filter((_, i) => i !== index));
+    const blobIndex = previews.findIndex(val => val.index === index);
+    URL.revokeObjectURL(previews[blobIndex].filename);
+    setPreviews(previews.filter((val) => val.index !== index));
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if(idCulinary) {
-      await updateCulinaryData(idCulinary);
+      const culinaryUpdate = await updateCulinaryData(idCulinary);
+      const specialty = await addSpecialtiesData(idCulinary);
+      const gallery = await addGalleriesData(idCulinary);
+      const specialtyUpdate = await updateSpecialtiesData(idCulinary);
+      const specialtyDelete = await deleteSpecialtiesData();
+      const galleryDelete = await deleteGalleriesData();
+ 
+      if(culinaryUpdate && specialty && specialtyUpdate && specialtyDelete && gallery && galleryDelete) {
+        navigate('/admin/culinary', {replace : true});
+      } 
     } else {
-      await addCulinaryData();
+      let culinary, specialty, gallery;
+
+      if(!culinaryState) {
+        culinary = await addCulinaryData();
+      }
+      if(culinary || culinaryState)   {
+        if(!specialtyState && specialties.length !== 0) {
+          specialty = await addSpecialtiesData(idCulinaryTemp ? idCulinaryTemp : culinary as number);
+        }
+        if(!galleryState && galleries.length !== 0) {
+          gallery = await addGalleriesData(idCulinaryTemp ? idCulinaryTemp : culinary as number);
+        }
+      }
+
+      if((culinary || culinaryState) && (specialty ||  specialties.length === 0) && (gallery || galleries.length === 0)) {
+        navigate('/admin/culinary', {replace : true});
+      } 
     }
-    navigate('/admin/culinary', {replace : true});
   };
 
   
@@ -254,7 +363,6 @@ const CulinaryForm: React.FC = () => {
       }
     }
   },[preview]);
-
 
   return (
     <div className="space-y-6">
@@ -490,7 +598,7 @@ const CulinaryForm: React.FC = () => {
             {
               id && specialtiesUpdate.map((item, index) => {
               return (
-                !specialtiesDeletedTemp.find(val => val === item.id) 
+                !specialtiesDeletedTempPreview.find(val => val === item.id) 
                 &&
                 <div key={index} className="flex items-center space-x-2 ">
                   <input
@@ -529,7 +637,7 @@ const CulinaryForm: React.FC = () => {
                     disabled={isLoadingForm}
                     required
                     type="text"
-                    value={specialty}
+                    value={specialty.menu}
                     onChange={(e) => handleArrayChangeSpecialties(index, e.target.value)}
                     className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                     placeholder="Nama menu spesial"
@@ -569,15 +677,15 @@ const CulinaryForm: React.FC = () => {
                       const newFiles = target.files;
                       if(newFiles.length > 1) {
                         const newFilesArray = Array.from(newFiles);
-                        setGalleries(prev => [...prev, ...newFilesArray]);
-                        newFilesArray.map(val => {
+                        newFilesArray.map((val, index) => {
+                          setGalleries(prev => [...prev, {index: galleries.length > 0 ? galleries[galleries.length - 1] && galleries[galleries.length - 1]["index"] + index + 1 : index + 1, file: val}]);
                           const objectUrl = URL.createObjectURL(val);
-                          setPreviews(prev => [...prev, objectUrl]);
+                          setPreviews(prev => [...prev, {index: galleries.length > 0 ? galleries[galleries.length - 1] && previews[previews.length - 1]["index"] + index + 1 : index + 1, filename: objectUrl}]);
                         })
                       } else {
-                        addArrayItemGalleries(target.files[0]);
+                        addArrayItemGalleries(galleries.length > 0 ? galleries[galleries.length - 1]["index"] + 1 : galleries.length + 1, target.files[0]);
                         const objectUrl = URL.createObjectURL(target.files[0]);
-                        setPreviews(prev => [...prev, objectUrl]);
+                        setPreviews(prev => [...prev, {index:previews.length > 0 ? previews[previews.length - 1]["index"] + 1 : previews.length + 1, filename: objectUrl}]);
                       }
                   }}
                 />
@@ -591,7 +699,7 @@ const CulinaryForm: React.FC = () => {
                 <p className="text-sm text-gray-500 mb-2">Gambar yang sudah ada:</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {galleriesUpdate.map((item, index) => (
-                    !galleriesDeletedTemp.find(val => val === item.id) &&
+                    !galleriesDeletedTempPreview.find(val => val === item.id) &&
                     <div key={item.id} className="relative group rounded-md overflow-hidden border border-gray-200">
                       <img
                         src={storageUrl(item.image)}
@@ -622,15 +730,15 @@ const CulinaryForm: React.FC = () => {
                     {previews.map((preview, index) => (
                       <div key={index} className="relative group rounded-md overflow-hidden border border-gray-200">
                         <img
-                          src={preview}
+                          src={preview.filename}
                           alt={`Preview ${index + 1}`}
                           className="w-full h-32 object-cover"
                         />
                         <button
                           type="button"
                           onClick={() => {
-                            removeArrayItemGalleries(index);
-                            removeArrayItemGalleriesPreview(index);
+                            removeArrayItemGalleries(preview.index);
+                            removeArrayItemGalleriesPreview(preview.index);
                           }}
                           className="absolute top-2 right-2 inline-flex items-center justify-center h-7 w-7 rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                           aria-label="Hapus gambar"

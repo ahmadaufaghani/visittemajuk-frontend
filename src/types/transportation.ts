@@ -1,6 +1,7 @@
 export interface TransportationSteps {
     id: number,
     description: string,
+    order:number,
     cost: string,
     duration: string,
     vehicle: string,
@@ -10,11 +11,24 @@ export interface TransportationSteps {
 export interface TransportationTips {
     id: number,
     tip: string,
+    order:number,
     transportation_id: number
 }
 
-export type TransportationStepsPayload = Omit<TransportationSteps, "id">
-export type TransportationTipsPayload = Omit<TransportationTips, "id">
+export interface TransportationStepsPayload {
+    description: string,
+    order: number,
+    cost: string,
+    duration: string,
+    vehicle: string,
+    transportation_id: number
+}
+
+export interface TransportationTipsPayload {
+    tip: string,
+    order: number,
+    transportation_id: number
+}
 
 export interface TransportationStepsList {
     description: string,
@@ -22,7 +36,6 @@ export interface TransportationStepsList {
     duration: string,
     vehicle: string,
 }
-
 
 export interface Transportation {
     id: number,
