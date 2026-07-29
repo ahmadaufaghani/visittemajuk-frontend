@@ -1,12 +1,14 @@
 export interface Specialty {
     id: number,
     menu: string,
+    order: number,
     culinary_id: number
 }
 
 export interface Gallery {
     id: number,
     image: string | File,
+    order: number,
     culinary_id: number
 }
 
@@ -51,11 +53,13 @@ export interface CulinaryPayloadUpdate {
 
 export interface SpecialtyPayload {
     menu: string,
+    order: number,
     culinary_id : number,
 }
 
 export interface GalleryPayload {
     image: File,
+    order: number,
     culinary_id : number,
 }
 

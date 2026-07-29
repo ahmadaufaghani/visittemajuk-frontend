@@ -22,20 +22,28 @@ const TransportationForm: React.FC = () => {
   const user = useAuth();
   const handleApiError = useApiErrorHandler();
   const [idTransportation, setIdTransportation] = useState<number>(0);
+  const [idTransportationTemp, setIdTransportationTemp] = useState<number>(0);
+  const [transportationState, setTransportationState] = useState<boolean>(false);
+  const [stepState, setStepState] = useState<boolean>(false);
+  const [tipState, setTipState] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [image, setImage] = useState<File| string | null>(null);
   const [estimatedCost, setEstimatedCost] = useState<string>("");
   const [estimatedTime, setEstimatedTime] = useState<string>("");
   const [difficulty, setDifficulty] = useState<string>("");
-  const [steps, setSteps] = useState<TransportationStepsList[]>([]);
-  const [tips, setTips] = useState<string[]>([]);
+  const [steps, setSteps] = useState<{index: number, step: TransportationStepsList}[]>([]);
+  const [tips, setTips] = useState<{index: number, tip: string}[]>([]);
   const [stepsUpdate, setStepsUpdate] = useState<TransportationSteps[]>([]);
+  const [tipsUpdate, setTipsUpdate] = useState<TransportationTips[]>([]);
   const [stepsUpdatedTemp, setStepsUpdatedTemp] = useState<number[]>([]);
   const [stepsDeletedTemp, setStepsDeletedTemp] = useState<number[]>([]);
+  const [stepsDeletedTempPreview, setStepsDeletedTempPreview] = useState<number[]>([]);
   const [tipsUpdatedTemp, setTipsUpdatedTemp] = useState<number[]>([]);
   const [tipsDeletedTemp, setTipsDeletedTemp] = useState<number[]>([]);
-  const [tipsUpdate, setTipsUpdate] = useState<TransportationTips[]>([]);
+  const [tipsDeletedTempPreview, setTipsDeletedTempPreview] = useState<number[]>([]);
+  const [lastStepSuccess, setLastStepSuccess] = useState<number[]>([]);
+  const [lastTipSuccess, setLastTipSuccess] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
@@ -62,7 +70,7 @@ const TransportationForm: React.FC = () => {
     }
   }
 
-  const addTransportationData = async () => {
+  const addTransportationData = async (): Promise<boolean|number> => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
@@ -74,51 +82,93 @@ const TransportationForm: React.FC = () => {
       formBody.append("estimated_time", estimatedTime.trim());
 
       const res = await createTransportation(formBody,user.token as string);
+      setIdTransportationTemp(res.id);
+      setTransportationState(true);
+      setIsLoadingForm(false);
       toast.success("Transportasi berhasil ditambahkan.");
-      addStepsData(res.id);
-      addTipsData(res.id);
+      return res.id;
     } catch (err) {
+        setIsLoadingForm(false);
         handleApiError(err);
+        return false;
     }
   }
 
-  const addStepsData = (id: number) => {
-      steps.map(async (val) => {
-        try {
-          await createSteps({
-            description: val.description.trim(), 
-            duration: val.duration.trim(), 
-            cost: val.cost.trim(), 
-            vehicle: val.vehicle.trim(), 
-            transportation_id: id
-          }, 
-          user.token as string);
-          toast.success("Langkah baru berhasil ditambahkan.");
-        } catch (err) {
-            handleApiError(err);
+  const addStepsData = async (id: number): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        steps.map(async (val, index) => {
+          if(!lastStepSuccess.includes(val.index)) {
+            setLastStepSuccess(prev => [...prev, val.index]);
+            return await createSteps({
+              description: val.step.description.trim(), 
+              duration: val.step.duration.trim(), 
+              cost: val.step.cost.trim(), 
+              vehicle: val.step.vehicle.trim(),
+              order: idTransportation && stepsUpdate.length > 0 ? stepsUpdate[stepsUpdate.length-1] && stepsUpdate[stepsUpdate.length-1].order + (index + 1) : index + 1, 
+              transportation_id: id
+            }, 
+            user.token as string)
+            .catch((err)=>{
+              setLastStepSuccess(prev => prev.filter(item => item !== val.index));
+              if(err instanceof ApiError) {
+                  throw new Error(`Langkah gagal ditambahkan. Error: ${err.message}`);
+                }
+            });
+          }
+      }
+
+      )
+      );
+      setStepState(true);
+      setIsLoadingForm(false);
+      steps.length > 0 && toast.success("Langkah berhasil ditambahkan.");
+      return true;
+    } catch (err) {
+        setIsLoadingForm(false);
+        if(err instanceof Error) {
+          toast.error(err.message);
         }
-      });
+        return false;
+    }
   }
 
-  const addTipsData = (id: number) => {
-      tips.map(async (val) => {
-        try {
-          await createTips({
-            tip: val.trim(), 
+  const addTipsData = async (id: number): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(tips.map(async (val, index) => {
+        if(!lastTipSuccess.includes(val.index)) {
+          setLastTipSuccess(prev => [...prev, val.index]);
+          return await createTips({
+            tip: val.tip.trim(), 
+            order: idTransportation && tipsUpdate.length > 0 ? tipsUpdate[tipsUpdate.length-1] && tipsUpdate[tipsUpdate.length-1].order + (index + 1) : index + 1, 
             transportation_id: id
-          }, user.token as string);
-          toast.success("Tips baru berhasil ditambahkan.");
-        } catch (err) {
-          if(err instanceof ApiError) {
-             toast.error(`Tips baru gagal ditambahkan. Error : ${err.message}`);
-             console.error(err.errors);
-           }  
+          }, user.token as string)
+          .catch((err) => {
+            setLastTipSuccess(prev => prev.filter(item => item !== val.index));
+            if(err instanceof ApiError) {
+                  throw new Error(`Tips gagal ditambahkan. Error: ${err.message}`);
+            }
+          });
         }
-      });
-
+      }
+        
+      ));
+      setTipState(true);
+      setIsLoadingForm(false);
+      tips.length > 0 && toast.success("Tips berhasil ditambahkan.");
+      return true;
+    } catch (err) {
+      setIsLoadingForm(false);
+      if(err instanceof Error) {
+        toast.error(err.message);
+      }
+      return false;
+    }
   }
 
-  const updateTransportationData = async (id : number) => {
+  const updateTransportationData = async (id : number): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
@@ -130,78 +180,116 @@ const TransportationForm: React.FC = () => {
       formBody.append("estimated_time", estimatedTime.trim());
       await updateTransportation(id, formBody, user.token as string);
       toast.success("Transportasi berhasil diperbarui.");
-      addStepsData(id);
-      addTipsData(id);
-      updateStepsData();
-      updateTipsData();
-      deleteStepsData();
-      deleteTipsData();
-      setIsLoadingForm(false);    
+      setIsLoadingForm(false);   
+      return true; 
     } catch (err) {   
-      handleApiError(err);
+        setIsLoadingForm(false);   
+        handleApiError(err);
+      return false;
     }
   }
 
-  const updateStepsData = () => {
-      stepsUpdatedTemp.map(async (val) => {
-        try {
-          const steps = stepsUpdate[val];
-  
-          if(!stepsDeletedTemp.find(val => val === steps.id)) {
-            await updateTransportationSteps(steps.id, {description:steps.description.trim(), duration: steps.duration.trim(), cost: steps.cost.trim(), vehicle: steps.vehicle.trim(), transportation_id: steps.transportation_id}, user.token as string);
-            toast.success("Langkah baru berhasil diperbarui.");
-          }
-        } catch (err) {
-          handleApiError(err);
+  const updateStepsData = async (): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        stepsUpdatedTemp.map((val) => {
+            const steps = stepsUpdate[val];
+
+            if(!stepsDeletedTemp.find(val => val === steps.id)) {
+              setStepsUpdatedTemp(prev => prev.filter(item => item !== val));
+              return updateTransportationSteps(steps.id, {description:steps.description.trim(), duration: steps.duration.trim(), order:steps.order, cost: steps.cost.trim(), vehicle: steps.vehicle.trim(), transportation_id: steps.transportation_id}, user.token as string)
+              .catch((err) => {
+                setStepsUpdatedTemp(prev => [...prev, val]);
+                if(err instanceof ApiError) {
+                  throw new Error(`Langkah gagal diperbarui. Error: ${err.message}`);
+                }
+              });
+            }
+        })
+      );
+      setIsLoadingForm(false);
+      stepsUpdatedTemp.length > 0 && toast.success("Langkah berhasil diperbarui.");
+      return true;
+    } catch (err) {
+      setIsLoadingForm(false);
+       if(err instanceof Error) {
+          toast.error(err.message);
         }
-
-      });
+       return false;
+    }
   }
   
-  const updateTipsData = () => {
-    tipsUpdatedTemp.map(async (val) => {
-      try {
-        const tips = tipsUpdate[val];
-        
-        if(!tipsDeletedTemp.find(val => val === tips.id)) {
-          await updateTransportationTips(tips.id, {tip: tips.tip.trim(), transportation_id: tips.transportation_id}, user.token as string);
-          toast.success("Tips berhasil diperbarui.");  
+  const updateTipsData = async (): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        tipsUpdatedTemp.map((val) => {
+            const tips = tipsUpdate[val];
+            
+            if(!tipsDeletedTemp.find(val => val === tips.id)) {
+              setTipsUpdatedTemp(prev => prev.filter(item => item !== val));
+              return updateTransportationTips(tips.id, {tip: tips.tip.trim(), order: tips.order, transportation_id: tips.transportation_id}, user.token as string)
+              .catch((err) => {
+                setTipsUpdatedTemp(prev => [...prev, val]);
+                if(err instanceof ApiError) {
+                  throw new Error(`Tips gagal diperbarui. Error: ${err.message}`);
+                }
+              });
+            }
+        })
+      );
+      setIsLoadingForm(false);
+      tipsUpdatedTemp.length > 0 && toast.success("Tips berhasil diperbarui.");
+      return true;
+    } catch (err) {
+        if(err instanceof Error) {
+          toast.error(err.message);
         }
-      } catch (err) {
-        handleApiError(err);
-      }
-    });
-    
+        return false;
+    }
   }
 
-  const deleteStepsData = () => {
-    stepsDeletedTemp.map(async (val) => {
-      try {
-        await deleteSteps(val, user.token as string);
-        toast.success("Langkah berhasil dihapus.");
-      } catch (err) {
-        handleApiError(err);
-      }
-    });
+  const deleteStepsData = async (): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        stepsDeletedTemp.map((val) => deleteSteps(val, user.token as string))
+      );
+      setIsLoadingForm(false);
+      stepsDeletedTemp.length > 0 && toast.success("Langkah berhasil dihapus.");
+      setStepsDeletedTemp([]);
+      return true;
+    } catch (err) {
+      setIsLoadingForm(false);
+      handleApiError(err);
+      return false;
+    }
   }
 
-  const deleteTipsData = () => {
-    tipsDeletedTemp.map(async (val) => {
-      try {
-        await deleteTips(val, user.token as string);
-        toast.success("Tips berhasil dihapus.");
-      } catch (err) {
-        handleApiError(err);
-      }
-    });
+  const deleteTipsData = async (): Promise<boolean> => {
+    try {
+      setIsLoadingForm(true);
+      await Promise.all(
+        tipsDeletedTemp.map((val) => deleteTips(val, user.token as string))
+      );
+      setIsLoadingForm(false);
+      tipsDeletedTemp.length > 0 && toast.success("Tips berhasil dihapus.");
+      setTipsDeletedTemp([]);
+      return true;
+    } catch (err) {
+      setIsLoadingForm(false);
+      handleApiError(err);
+      return false;
+    }
   }
   
   const addArrayItemSteps = () => {
-    setSteps(prev => [...prev, {description : '', duration: '', cost: '', vehicle: ''}]);
+    setSteps(prev => [...prev, {index:0, step:{description : '', duration: '', cost: '', vehicle: ''}}]);
   }
 
   const addArrayItemTips = () => {
-    setTips(prev => [...prev, '']);
+    setTips(prev => [...prev, {index:0, tip:''}]);
   }
 
   const addArrayItemStepsUpdatedTemp = (val: number) => {
@@ -210,6 +298,7 @@ const TransportationForm: React.FC = () => {
 
   const addArrayItemStepsDeletedTemp = (val: number) => {
     setStepsDeletedTemp(prev => [...prev, val]);
+    setStepsDeletedTempPreview(prev => [...prev, val]);
   }
 
   const addArrayItemTipsUpdatedTemp = (val: number) => {
@@ -218,16 +307,39 @@ const TransportationForm: React.FC = () => {
 
   const addArrayItemTipsDeletedTemp = (val: number) => {
     setTipsDeletedTemp(prev => [...prev, val]);
+    setTipsDeletedTempPreview(prev => [...prev, val]);
   }
 
   const handleArrayChangeSteps = (index: number, key: string, value: string) => {
-    setSteps(steps.map((item, i) => i === index ? {...item, [key]:value} : item));
+    setSteps(steps.map((item, i) => i === index ? 
+    {
+      index:
+      steps.length > 0 
+      ? 
+      steps[index].index !== 0 ? steps[index].index :  steps[steps.length - 1 ].index + index + 1 
+      : 
+      steps.length + 1,  
+      step: {
+        ...item.step,
+        [key]:value
+      }
+    } : 
+    item));
   };
 
   const handleArrayChangeTips = (index: number, value: string) => {
-    setTips(tips.map((item, i) => i === index ? value : item));
+    setTips(tips.map((item, i) => i === index ? {
+    index: 
+      tips.length > 0 
+      ? 
+      tips[index].index !== 0 ? tips[index].index :  tips[tips.length - 1 ].index + index + 1 
+      : 
+      tips.length + 1, 
+    tip:value} 
+    : item
+  ));
   };
-
+  
   const removeArrayItemSteps = (index: number) => {
     setSteps(steps.filter((_, i) => i !== index));
   }
@@ -246,12 +358,39 @@ const TransportationForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(idTransportation) {
-      await updateTransportationData(idTransportation);
+    
+    if(idTransportation) { 
+      const transportationUpdate = await updateTransportationData(idTransportation);    
+      const step = await addStepsData(idTransportation);
+      const stepUpdate = await updateStepsData();
+      const stepDelete = await deleteStepsData();
+      const tip = await addTipsData(idTransportation);
+      const tipUpdate = await updateTipsData();
+      const tipDelete = await deleteTipsData();
+
+      if(transportationUpdate && step && stepUpdate && stepDelete && tip && tipUpdate && tipDelete) {
+        navigate('/admin/transportations', {replace : true});
+      } 
+
     } else {
-      await addTransportationData();
+      let transportation, step, tip;
+
+      if(!transportationState) {
+        transportation = await addTransportationData();
+      }
+      if(transportation || transportationState)   {
+        if(!stepState && steps.length !== 0) {
+          step = await addStepsData(idTransportationTemp ? idTransportationTemp : transportation as number);
+        }
+        if(!tipState && tips.length !== 0) {
+          tip = await addTipsData(idTransportationTemp ? idTransportationTemp : transportation as number);
+        }
+      }
+
+      if((transportation || transportationState) && (step ||  steps.length === 0) && (tip || tips.length === 0)) {
+        navigate('/admin/transportations', {replace : true});
+      } 
     }
-    navigate('/admin/transportations', {replace : true});
   };
   
   useEffect(() => {
@@ -442,7 +581,7 @@ const TransportationForm: React.FC = () => {
             <div className="space-y-6">
               {id && stepsUpdate && stepsUpdate.length > 0 && stepsUpdate.map((item, index) => {
               return (
-              !stepsDeletedTemp.find(val => val === item.id) &&
+              !stepsDeletedTempPreview.find(val => val === item.id) &&
               <div key={index+"div"} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium text-gray-800">Langkah {index+1}</h3>
@@ -547,7 +686,7 @@ const TransportationForm: React.FC = () => {
               return (
               <div key={index+"div"} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium text-gray-800">Langkah {id ? ((steps.length > 0) ? stepsUpdate.length+index+1 : stepsUpdate.length+1) :  index+1}</h3>
+                  <h3 className="font-medium text-gray-800">Langkah {id ? ((steps.length > 0) ? stepsUpdate.length-stepsDeletedTemp.length+index+1 : stepsUpdate.length-stepsDeletedTemp.length+1) :  index+1}</h3>
                     <button
                       type="button"
                       className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
@@ -567,7 +706,7 @@ const TransportationForm: React.FC = () => {
                       disabled={isLoadingForm}
                       type="text"
                       name="duration"
-                      value={item.duration}
+                      value={item.step.duration}
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="cth: 1-2 Jam"
                       onChange={(e)=>handleArrayChangeSteps(index, "duration", e.target.value)}
@@ -583,7 +722,7 @@ const TransportationForm: React.FC = () => {
                       disabled={isLoadingForm}
                       type="text"
                       name="cost"
-                      value={item.cost}
+                      value={item.step.cost}
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="cth: Rp 50.000 - Rp 100.000"
                       onChange={(e)=>handleArrayChangeSteps(index, "cost", e.target.value)}
@@ -598,7 +737,7 @@ const TransportationForm: React.FC = () => {
                       disabled={isLoadingForm}
                       type="text"
                       name="vehicle"
-                      value={item.vehicle}
+                      value={item.step.vehicle}
                       className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       placeholder="cth: Bus / Travel"
                       onChange={(e)=>handleArrayChangeSteps(index, "vehicle", e.target.value)}
@@ -615,7 +754,7 @@ const TransportationForm: React.FC = () => {
                     disabled={isLoadingForm}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                     placeholder="Masukkan deskripsi dari langkah"
-                    value={item.description}
+                    value={item.step.description}
                     rows={2}
                     onChange={(e)=>handleArrayChangeSteps(index, "description", e.target.value)}
                     required
@@ -645,7 +784,7 @@ const TransportationForm: React.FC = () => {
             {
               id && tipsUpdate.map((item, index) => {
               return (
-              !tipsDeletedTemp.find(val => val === item.id) &&
+              !tipsDeletedTempPreview.find(val => val === item.id) &&
               <div key={index} className="flex items-center space-x-2 ">
                 <input
                   disabled={isLoadingForm}
@@ -676,12 +815,12 @@ const TransportationForm: React.FC = () => {
               }) 
             }
             {
-              tips.map((specialty, index) => (
+              tips.map((item, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <input
                     disabled={isLoadingForm}
                     type="text"
-                    value={specialty}
+                    value={item.tip}
                     onChange={(e) => handleArrayChangeTips(index, e.target.value)}
                     className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                     placeholder="Tips terkait transportasi"
