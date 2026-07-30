@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
 import Card from '../components/Card';
-import { Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { PuffLoader } from 'react-spinners';
 import { usePhotoSpots } from '../hooks/usePhotoSpots';
 import { usePhotographyTips } from '../hooks/usePhotographyTips';
@@ -17,6 +17,7 @@ const PhotoSpots: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [banner, setBanner] = useState<Banner | null>(null);
   const [isEmptyBanner, setIsEmptyBanner] = useState<boolean>(false);
@@ -24,12 +25,16 @@ const PhotoSpots: React.FC = () => {
     params: {
       search: debouncedSearch,
       category: selectedCategory,
+      page,
       perPage: 9,
     },
   });
   const { tips: photographyTips, isLoading: isLoadingTips } = usePhotographyTips();
 
   const categories = [...new Set(meta.filters.categories.map((category) => category))];
+  const pagination = meta.pagination;
+  const canGoToPreviousPage = pagination.current_page > 1;
+  const canGoToNextPage = pagination.current_page < pagination.last_page;
 
   const updateSearchParams = (updates: Record<string, string | number>) => {
     setSearchParams(prev => {
@@ -47,12 +52,14 @@ const PhotoSpots: React.FC = () => {
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    updateSearchParams({ search: value });
+    setPage(1);
+    updateSearchParams({ search: value, page: '' });
   };
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
-    updateSearchParams({ category: value });
+    setPage(1);
+    updateSearchParams({ category: value, page: '' });
   };
 
   useEffect(()=> {
@@ -137,19 +144,63 @@ const PhotoSpots: React.FC = () => {
 
           {/* Photo Spots Grid */}
           {!isLoading && !error && photoSpots.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {photoSpots.map((spot) => (
-                <Card
-                  key={spot.id}
-                  id={spot.slug}
-                  title={spot.title}
-                  description={spot.description}
-                  imageUrl={storageUrl(spot.image)}
-                  link="/foto"
-                  category={spot.category}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {photoSpots.map((spot) => (
+                  <Card
+                    key={spot.id}
+                    id={spot.slug}
+                    title={spot.title}
+                    description={spot.description}
+                    imageUrl={storageUrl(spot.image)}
+                    link="/foto"
+                    category={spot.category}
+                  />
+                ))}
+              </div>
+
+              {pagination.total > 0 && (
+                <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-sm text-gray-600">
+                    Menampilkan {pagination.from ?? 0}-{pagination.to ?? 0} dari {pagination.total} spot foto
+                  </p>
+
+                  {pagination.last_page > 1 && (
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => {
+                          const newPage = Math.max(1, page - 1);
+                          setPage(newPage);
+                          updateSearchParams({ page: newPage });
+                        }}
+                        disabled={!canGoToPreviousPage}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Sebelumnya
+                      </button>
+                      <span className="min-w-28 text-center text-sm text-gray-700">
+                        Halaman {pagination.current_page} dari {pagination.last_page}
+                      </span>
+                      <button
+                        type="button"
+                        className="inline-flex h-10 items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => {
+                          const newPage = page + 1;
+                          setPage(newPage);
+                          updateSearchParams({ page: newPage });
+                        }}
+                        disabled={!canGoToNextPage}
+                      >
+                        Berikutnya
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-500 text-lg">Tidak ada spot foto yang sesuai dengan pencarian Anda.</p>
