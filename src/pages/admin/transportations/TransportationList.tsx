@@ -110,7 +110,7 @@ const TransportationList: React.FC = () => {
   const handleDelete = async (id: number) => {
     showConfirm({
       title: 'Hapus Transportasi',
-      message: 'Apakah Anda yakin ingin menghapus rute kuliner ini?',
+      message: 'Apakah Anda yakin ingin menghapus rute transportasi ini?',
       onConfirm: async () => {
         try {
           await deleteTransportation(id, user.token as string);
@@ -449,7 +449,7 @@ const TransportationList: React.FC = () => {
                 </tr>
                 <tr className={`${selectedRow === item.id ? "" : "hidden"} md:hidden`}>
                   <td colSpan={3} className="p-0">
-                    <table>
+                    <table className="w-full">
                       <tbody className="divide-y">
                         <tr className="divide-x">
                           <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>

@@ -155,20 +155,6 @@ export async function createGallery(
   return response.data;
 }
 
-export async function updateGallery(
-  id: number,
-  payload: FormData,
-  token: string
-): Promise<Gallery> {
-  const response = await apiRequest<Gallery>(`/culinaryGalleries/${id}`, {
-    method: 'POST',
-    token,
-    body: payload,
-  });
-
-  return response.data;
-}
-
 export async function deleteGallery(id: number, token: string): Promise<void> {
   await apiRequest<null>(`/culinaryGalleries/${id}`, {
     method: 'DELETE',

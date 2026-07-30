@@ -80,7 +80,7 @@ const Culinary: React.FC = () => {
     .catch(err => {
       setIsEmptyBanner(true);
       if(err instanceof ApiError) {
-        console.error(err.errors);
+        handleApiError(err);
       }
     });
 
@@ -97,7 +97,6 @@ const Culinary: React.FC = () => {
     });
   },[]);
 
-  console.log(isEmptyBanner);
   return (
     <div>
       <Hero

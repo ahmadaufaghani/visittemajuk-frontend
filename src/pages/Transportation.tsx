@@ -51,7 +51,7 @@ const Transportation: React.FC = () => {
     .catch(err => {
       setIsEmptyBanner(true);
       if(err instanceof ApiError) {
-        console.error(err.errors);
+        handleApiError(err.errors);
       }
     });
 
