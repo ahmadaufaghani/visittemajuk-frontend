@@ -360,7 +360,7 @@ const AdditionalCulinaryList: React.FC = () => {
                   </tr>
                   <tr className={`${selectedRow === item.id ? "" : "hidden"} sm:hidden`}>
                     <td colSpan={3} className="p-0">
-                      <table>
+                      <table className="w-full">
                         <tbody className="divide-y">
                           <tr className="divide-x">
                             <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>

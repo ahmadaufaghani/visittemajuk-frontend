@@ -298,7 +298,7 @@ const CulinaryList: React.FC = () => {
       {/* Header */}
       <div className="space-y-4 sm:flex sm:justify-between sm:items-center">
         <h1 className="text-2xl font-bold text-gray-800">Manajemen Kuliner</h1>
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-col items-end sm:flex-row sm:items-center sm:justify-end gap-2">
           <button
             onClick={async ()=> {
               overlay.changeStatus(true);
@@ -456,7 +456,7 @@ const CulinaryList: React.FC = () => {
                 </tr>
                 <tr className={`${selectedRow === item.id ? "" : "hidden"} md:hidden`}>
                   <td colSpan={3} className="p-0">
-                    <table>
+                    <table className="w-full">
                       <tbody className="divide-y">
                         <tr className="divide-x">
                           <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>

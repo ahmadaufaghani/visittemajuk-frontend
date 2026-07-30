@@ -56,7 +56,7 @@ const AdditionalInformationList: React.FC = () => {
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
       type : type,
-      description: type === "Paragraf" ? description : formattedList
+      description: type === "paragraph" ? description : formattedList
     } 
     setIsLoading(true);
     try {
@@ -69,8 +69,7 @@ const AdditionalInformationList: React.FC = () => {
     }catch (err) {
       setIsLoading(false);
       if(err instanceof ApiError) {
-        toast.error(`Kuliner khas gagal ditambahkan. Error : ${err.message}`);
-        console.log(err.errors);
+        handleApiError(err);
       }
     };
   }
@@ -127,6 +126,7 @@ const AdditionalInformationList: React.FC = () => {
   useEffect(()=>{
     getAdditionalInformationData();
   },[])
+
 
   return (
     <>
@@ -424,7 +424,7 @@ const AdditionalInformationList: React.FC = () => {
                   </tr>
                   <tr className={`${selectedRow === item.id ? "" : "hidden"} md:hidden`}>
                     <td colSpan={3} className="p-0">
-                      <table>
+                      <table className="w-full">
                         <tbody className="divide-y">
                           <tr className="divide-x">
                             <td className="align-top pr-4 font-semibold pl-2 text-sm">Deskripsi</td>
@@ -453,7 +453,7 @@ const AdditionalInformationList: React.FC = () => {
                                     setId(item.id);
                                     setTitle(item.title);
                                     setType(item.type);
-                                    if(item.type === "Paragraf") {
+                                    if(item.type === "paragraph") {
                                       setDescription(item.description);
                                     } else {
                                       setList(prev => [...prev, ...item.description.split("\n")]);

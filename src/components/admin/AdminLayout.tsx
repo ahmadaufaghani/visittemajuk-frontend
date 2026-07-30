@@ -232,9 +232,9 @@ const AdminLayout: React.FC = () => {
               {location.pathname.includes('/destinations') && 'Manajemen Destinasi'}
               {location.pathname.includes('/accommodations') && 'Manajemen Akomodasi'}
               {location.pathname.includes('/transportations/information') && 'Informasi Tambahan'}
-              {location.pathname.includes('/transportations') && 'Transportasi'}
+              {location.pathname.includes('/transportations') && !location.pathname.includes('/information') &&'Transportasi'}
               {location.pathname.includes('/culinary/additional') && 'Kuliner Khas'}
-              {location.pathname.includes('/culinary') && 'Kuliner'}
+              {location.pathname.includes('/culinary') && !location.pathname.includes('/additional') && 'Kuliner'}
               {location.pathname.includes('/photo-spots/photography-tips') && 'Tips Fotografi'}
               {location.pathname.includes('/photo-spots') && !location.pathname.includes('/photography-tips') && 'Spot Foto'}
               {location.pathname === '/admin/settings' && 'Beranda & Footer'}

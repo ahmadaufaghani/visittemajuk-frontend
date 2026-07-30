@@ -48,6 +48,14 @@ const TransportationForm: React.FC = () => {
   const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
 
+  const [errorTransportation, setErrorTransportation] = useState<Record<string, string[]>>();
+  
+  const [errorStepsCreate, setErrorStepsCreate] = useState<{index: number, errors: Record<string, string[]>}[]>([]);
+  const [errorStepsUpdate, setErrorStepsUpdate] = useState<{id: number, errors: Record<string, string[]>}[]>([]);
+
+  const [errorTipsCreate, setErrorTipsCreate] = useState<{index: number, errors: Record<string, string[]>}[]>([]);
+  const [errorTipsUpdate, setErrorTipsUpdate] = useState<{id: number, errors: Record<string, string[]>}[]>([]);
+
   const difficulties = ['Mudah', 'Sedang', 'Sulit'];
 
   const showTransportation = async (id: number) => {
@@ -88,8 +96,11 @@ const TransportationForm: React.FC = () => {
       toast.success("Transportasi berhasil ditambahkan.");
       return res.id;
     } catch (err) {
+        if(err instanceof ApiError) {
+          setErrorTransportation(err.errors);
+        }
         setIsLoadingForm(false);
-        handleApiError(err);
+        toast.error("Transportasi gagal ditambahkan.");
         return false;
     }
   }
@@ -98,10 +109,10 @@ const TransportationForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        steps.map(async (val, index) => {
+        steps.map((val, index) => {
           if(!lastStepSuccess.includes(val.index)) {
             setLastStepSuccess(prev => [...prev, val.index]);
-            return await createSteps({
+            return createSteps({
               description: val.step.description.trim(), 
               duration: val.step.duration.trim(), 
               cost: val.step.cost.trim(), 
@@ -113,6 +124,7 @@ const TransportationForm: React.FC = () => {
             .catch((err)=>{
               setLastStepSuccess(prev => prev.filter(item => item !== val.index));
               if(err instanceof ApiError) {
+                  setErrorStepsCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
                   throw new Error(`Langkah gagal ditambahkan. Error: ${err.message}`);
                 }
             });
@@ -137,10 +149,10 @@ const TransportationForm: React.FC = () => {
   const addTipsData = async (id: number): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
-      await Promise.all(tips.map(async (val, index) => {
+      await Promise.all(tips.map((val, index) => {
         if(!lastTipSuccess.includes(val.index)) {
           setLastTipSuccess(prev => [...prev, val.index]);
-          return await createTips({
+          return createTips({
             tip: val.tip.trim(), 
             order: idTransportation && tipsUpdate.length > 0 ? tipsUpdate[tipsUpdate.length-1] && tipsUpdate[tipsUpdate.length-1].order + (index + 1) : index + 1, 
             transportation_id: id
@@ -148,7 +160,8 @@ const TransportationForm: React.FC = () => {
           .catch((err) => {
             setLastTipSuccess(prev => prev.filter(item => item !== val.index));
             if(err instanceof ApiError) {
-                  throw new Error(`Tips gagal ditambahkan. Error: ${err.message}`);
+              setErrorTipsCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
+              throw new Error(`Tips gagal ditambahkan. Error: ${err.message}`);
             }
           });
         }
@@ -183,8 +196,11 @@ const TransportationForm: React.FC = () => {
       setIsLoadingForm(false);   
       return true; 
     } catch (err) {   
+        if(err instanceof ApiError) {
+          setErrorTransportation(err.errors);
+        }
         setIsLoadingForm(false);   
-        handleApiError(err);
+        toast.error("Transportasi gagal diperbarui.");
       return false;
     }
   }
@@ -202,6 +218,7 @@ const TransportationForm: React.FC = () => {
               .catch((err) => {
                 setStepsUpdatedTemp(prev => [...prev, val]);
                 if(err instanceof ApiError) {
+                  setErrorStepsUpdate(prev => [...prev, {id: steps.id, errors: {...err.errors}}]);
                   throw new Error(`Langkah gagal diperbarui. Error: ${err.message}`);
                 }
               });
@@ -233,6 +250,7 @@ const TransportationForm: React.FC = () => {
               .catch((err) => {
                 setTipsUpdatedTemp(prev => [...prev, val]);
                 if(err instanceof ApiError) {
+                  setErrorTipsUpdate(prev => [...prev, {id:tips.id, errors: {...err.errors}}]);
                   throw new Error(`Tips gagal diperbarui. Error: ${err.message}`);
                 }
               });
@@ -283,13 +301,66 @@ const TransportationForm: React.FC = () => {
       return false;
     }
   }
+
+  const deleteErrorTransportation = (key: string) => {
+    setErrorTransportation(prev => {
+      if(!prev) return;
+
+      const {[key]:_, ...newData} = prev;
+      return newData;
+    })
+  }
+
+  const deleteErrorStepsCreate = (id: number, key: string) => {
+    if(errorStepsCreate.length > 0) {
+      if(errorStepsCreate.find(val => val.index === id && Object.keys(val.errors).length === 0) || key === "") {
+        errorStepsCreate.find(val => val.index === id) && setErrorStepsCreate(prev => prev.filter(val => val.index !== id));
+        return;
+      } 
+  
+      setErrorStepsCreate(prev => {
+        const index = prev.findIndex(val => val.index === id);
+  
+        const updatedError = prev[index];
+        const {[key]:_, ...newError} = updatedError.errors;
+  
+        return prev.map(val => val.index === id ? {...val, errors:newError} : val);
+      });
+    }
+  }
+
+  const deleteErrorStepsUpdate = (id: number, key: string) => {
+    if(errorStepsUpdate.length > 0) {
+      if(errorStepsUpdate.find(val => val.id === id && Object.keys(val.errors).length === 0) || key === "") {
+        errorStepsUpdate.find(val => val.id === id) && setErrorStepsUpdate(prev => prev.filter(val => val.id !== id));
+        return;
+      } 
+  
+      setErrorStepsUpdate(prev => {
+        const index = prev.findIndex(val => val.id === id);
+  
+        const updatedError = prev[index];
+        const {[key]:_, ...newError} = updatedError.errors;
+  
+        return prev.map(val => val.id === id ? {...val, errors:newError} : val);
+      });
+    }
+  }
+
+  const deleteErrorTipsCreate = (id: number) => {
+    errorTipsCreate.find(val => val.index === id) && setErrorTipsCreate(prev => prev.filter(val => val.index !== id));
+  }
+
+  const deleteErrorTipsUpdate = (id: number) => {
+    errorTipsUpdate.find(val => val.id === id) && setErrorTipsUpdate(prev => prev.filter(val => val.id !== id));
+  }
   
   const addArrayItemSteps = () => {
-    setSteps(prev => [...prev, {index:0, step:{description : '', duration: '', cost: '', vehicle: ''}}]);
+    setSteps(prev => [...prev, {index: prev.length === 0 ? 1 : prev[prev.length - 1].index + 1, step:{description : '', duration: '', cost: '', vehicle: ''}}]);
   }
 
   const addArrayItemTips = () => {
-    setTips(prev => [...prev, {index:0, tip:''}]);
+    setTips(prev => [...prev, {index: prev.length === 0 ? 1 : prev[prev.length - 1].index + 1, tip:''}]);
   }
 
   const addArrayItemStepsUpdatedTemp = (val: number) => {
@@ -297,6 +368,8 @@ const TransportationForm: React.FC = () => {
   }
 
   const addArrayItemStepsDeletedTemp = (val: number) => {
+    const index = stepsUpdate.findIndex(item => item.id === val);
+    setStepsUpdatedTemp(prev => prev.filter(val => val !== index));
     setStepsDeletedTemp(prev => [...prev, val]);
     setStepsDeletedTempPreview(prev => [...prev, val]);
   }
@@ -306,6 +379,8 @@ const TransportationForm: React.FC = () => {
   }
 
   const addArrayItemTipsDeletedTemp = (val: number) => {
+    const index = tipsUpdate.findIndex(item => item.id === val);
+    setTipsUpdatedTemp(prev => prev.filter(val => val !== index));
     setTipsDeletedTemp(prev => [...prev, val]);
     setTipsDeletedTempPreview(prev => [...prev, val]);
   }
@@ -313,12 +388,7 @@ const TransportationForm: React.FC = () => {
   const handleArrayChangeSteps = (index: number, key: string, value: string) => {
     setSteps(steps.map((item, i) => i === index ? 
     {
-      index:
-      steps.length > 0 
-      ? 
-      steps[index].index !== 0 ? steps[index].index :  steps[steps.length - 1 ].index + index + 1 
-      : 
-      steps.length + 1,  
+      ...item,
       step: {
         ...item.step,
         [key]:value
@@ -329,12 +399,7 @@ const TransportationForm: React.FC = () => {
 
   const handleArrayChangeTips = (index: number, value: string) => {
     setTips(tips.map((item, i) => i === index ? {
-    index: 
-      tips.length > 0 
-      ? 
-      tips[index].index !== 0 ? tips[index].index :  tips[tips.length - 1 ].index + index + 1 
-      : 
-      tips.length + 1, 
+    ...item,
     tip:value} 
     : item
   ));
@@ -355,10 +420,13 @@ const TransportationForm: React.FC = () => {
     setTipsUpdate(tipsUpdate.map((item, i) => i === index ? {...item, [key]:value} : item));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setErrorTransportation({});
+    setErrorStepsCreate([]);
+    setErrorStepsUpdate([]);
+    setErrorTipsCreate([]);
+    setErrorTipsUpdate([]);
     if(idTransportation) { 
       const transportationUpdate = await updateTransportationData(idTransportation);    
       const step = await addStepsData(idTransportation);
@@ -442,11 +510,15 @@ const TransportationForm: React.FC = () => {
                   type="text"
                   name="title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  onChange={(e) => {
+                    deleteErrorTransportation("title");
+                    setTitle(e.target.value);
+                  }}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTransportation && errorTransportation["title"] ? "border-red-600" : ""}`}
                   required
                   placeholder="cth: Potianak ke Temajuk"
                 />
+                <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["title"] && `*${errorTransportation["title"].toString().replace("title", "Rute")}`}</span>
               </div>
 
               <div>
@@ -457,8 +529,12 @@ const TransportationForm: React.FC = () => {
                   disabled={isLoadingForm}
                   name="difficulty"
                   value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  onChange={(e) => {
+                      deleteErrorTransportation("difficulty");
+                      setDifficulty(e.target.value);
+                    }
+                  }
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTransportation && errorTransportation["difficulty"] ? "border-red-600" : ""}`}
                   required
                 >
                   <option value="">Pilih Kesulitan</option>
@@ -466,6 +542,7 @@ const TransportationForm: React.FC = () => {
                     <option key={item} value={item}>{item}</option>
                   ))}
                 </select>
+                 <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["difficulty"] && `*${errorTransportation["difficulty"].toString().replace("difficulty", "Tingkat Kesulitan")}`}</span>
               </div>
 
               <div>
@@ -477,11 +554,15 @@ const TransportationForm: React.FC = () => {
                   type="text"
                   name="estimated_cost"
                   value={estimatedCost}
-                  onChange={(e) => setEstimatedCost(e.target.value)}
+                  onChange={(e) => {
+                    deleteErrorTransportation("estimated_cost");
+                    setEstimatedCost(e.target.value);
+                  }}
                   placeholder="cth: Rp 100.000 - Rp 200.000 per orang"
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTransportation && errorTransportation["estimated_cost"] ? "border-red-600" : ""}`}
                   required
                 />
+                 <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["estimated_cost"] && `*${errorTransportation["estimated_cost"].toString().replace("estimated cost", "Biaya")}`}</span>
               </div>
 
               <div>
@@ -493,11 +574,15 @@ const TransportationForm: React.FC = () => {
                   type="text"
                   name="estimated_time"
                   value={estimatedTime}
-                  onChange={(e) => setEstimatedTime(e.target.value)}
+                  onChange={(e) => {
+                    deleteErrorTransportation("estimated_time");
+                    setEstimatedTime(e.target.value);
+                  }}
                   placeholder="cth: 1-2 Jam"
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTransportation && errorTransportation["estimated_time"] ? "border-red-600" : ""}`}
                   required
                 />
+                 <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["estimated_time"] && `*${errorTransportation["estimated_time"].toString().replace("estimated time", "Estimasi Waktu")}`}</span>
               </div>
             </div>
            
@@ -506,18 +591,20 @@ const TransportationForm: React.FC = () => {
                 Gambar *
               </label>
               <div className="flex flex-col md:flex-row md:items-center gap-4">
-              {preview || id && image  ? (
-                <img
-                  src={preview ? preview : storageUrl(image as string)}
-                  alt="Pratinjau gambar utama"
-                  className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
-                />
-              ) : (
-                <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
-                  Belum ada gambar
-                </div>
-              )}
-              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md ${isLoadingForm ? "cursor-not-allowed" : "cursor-pointer"} transition-colors`}>
+              <div>
+                {preview || id && image  ? (
+                  <img
+                    src={preview ? preview : storageUrl(image as string)}
+                    alt="Pratinjau gambar utama"
+                    className={`h-32 w-full md:w-56 object-cover rounded border border-gray-200 ${errorTransportation && errorTransportation["image"] ? "border-2 border-red-600" : ""}`}
+                  />
+                ) : (
+                  <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
+                    Belum ada gambar
+                  </div>
+                )}
+              </div>
+              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md ${isLoadingForm ? "cursor-not-allowed" : "cursor-pointer"} transition-colors w-fit`}>
                 <Upload className="h-4 w-4" />
                 <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
                 <input
@@ -527,6 +614,7 @@ const TransportationForm: React.FC = () => {
                   accept="image/jpeg,image/webp"
                   className="hidden"
                   onChange={(e) => {
+                    deleteErrorTransportation("image");
                     const target = e.target as HTMLInputElement & {
                       files : FileList;
                     }
@@ -542,6 +630,19 @@ const TransportationForm: React.FC = () => {
                 <p className="text-xs text-gray-500">Kosongkan jika tidak ingin mengubah gambar. Format: JPG, JPEG, WebP. Maks 1 MB.</p>
               )}
               </div>
+              <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["image"] && `*${errorTransportation["image"].map(val=>{
+                  let message = '';
+                  if(val.includes("max")) {
+                    message += "Ukuran gambar melebihi 1 MB;"
+                  }
+
+                  if(val.includes('mimes')) {
+                    message += "Ekstensi gambar tidak sesuai;"
+                  }
+
+                  return message;
+              }).join(" ")}`}
+              </span>
             </div>
 
             <div className="mt-6">
@@ -552,12 +653,16 @@ const TransportationForm: React.FC = () => {
                 disabled={isLoadingForm}
                 name="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  deleteErrorTransportation("description");
+                  setDescription(e.target.value);
+                }}
                 rows={3}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTransportation && errorTransportation["description"] ? "border-red-600" : ""}`}
                 required
                 placeholder="Masukkan deskripsi dari rute transportasi"
               />
+              <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["description"] && `*${errorTransportation["description"].toString().replace("description", "Deskripsi")}`}</span>
             </div>
           </div>
 
@@ -590,6 +695,7 @@ const TransportationForm: React.FC = () => {
                       type="button"
                       className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                       onClick={()=>{
+                        deleteErrorStepsUpdate(item.id, "");
                         addArrayItemStepsDeletedTemp(item.id);
                       }}
                     >
@@ -608,9 +714,10 @@ const TransportationForm: React.FC = () => {
                       type="text"
                       name="duration"
                       value={item.duration}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsUpdate.find(val => val.id === item.id && val.errors["duration"]) ? "border-red-600" : ""}`}
                       placeholder="1-2 Jam"
                       onChange={(e)=>{
+                        deleteErrorStepsUpdate(item.id, "duration");
                         handleArrayChangeStepsUpdate(index, "duration", e.target.value);
                         if(!stepsUpdatedTemp.includes(index)) {
                           addArrayItemStepsUpdatedTemp(index);
@@ -618,6 +725,7 @@ const TransportationForm: React.FC = () => {
                       }}
                       required
                     />
+                    <span className="text-red-600 text-sm">{errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)] && errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["duration"] && `*${errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["duration"]}`.replace('duration','Durasi')}</span>
                   </div>
 
                   <div>
@@ -629,9 +737,10 @@ const TransportationForm: React.FC = () => {
                       type="text"
                       name="cost"
                       value={item.cost}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsUpdate.find(val => val.id === item.id && val.errors["cost"]) ? "border-red-600" : ""}`}
                       placeholder="Rp 50.000 - Rp 100.000"
                       onChange={(e)=>{
+                        deleteErrorStepsUpdate(item.id, "cost");
                         handleArrayChangeStepsUpdate(index, "cost", e.target.value);
                         if(!stepsUpdatedTemp.includes(index)) {
                           addArrayItemStepsUpdatedTemp(index);
@@ -639,6 +748,7 @@ const TransportationForm: React.FC = () => {
                       }}
                       required
                     />
+                    <span className="text-red-600 text-sm">{errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)] && errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["cost"] && `*${errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["cost"]}`.replace('cost','Biaya')}</span>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -649,9 +759,10 @@ const TransportationForm: React.FC = () => {
                       type="text"
                       name="vehicle"
                       value={item.vehicle}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsUpdate.find(val => val.id === item.id && val.errors["vehicle"]) ? "border-red-600" : ""}`}
                       placeholder="Bus / Travel"
                       onChange={(e)=>{
+                        deleteErrorStepsUpdate(item.id, "vehicle");
                         handleArrayChangeStepsUpdate(index, "vehicle", e.target.value);
                         if(!stepsUpdatedTemp.includes(index)) {
                           addArrayItemStepsUpdatedTemp(index);
@@ -659,6 +770,7 @@ const TransportationForm: React.FC = () => {
                       }}
                       required
                     />
+                    <span className="text-red-600 text-sm">{errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)] && errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["vehicle"] && `*${errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["vehicle"]}`.replace('vehicle','Kendaraan')}</span>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -667,11 +779,12 @@ const TransportationForm: React.FC = () => {
                   </label>
                   <textarea
                     disabled={isLoadingForm}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsUpdate.find(val => val.id === item.id && val.errors["description"]) ? "border-red-600" : ""}`}
                     placeholder="Masukkan deskripsi dari langkah"
                     value={item.description}
                     rows={2}
                     onChange={(e)=>{
+                      deleteErrorStepsUpdate(item.id, "description");
                       handleArrayChangeStepsUpdate(index, "description", e.target.value);
                       if(!stepsUpdatedTemp.includes(index)) {
                         addArrayItemStepsUpdatedTemp(index);
@@ -679,6 +792,7 @@ const TransportationForm: React.FC = () => {
                     }}
                     required
                   />
+                  <span className="text-red-600 text-sm">{errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)] && errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["description"] && `*${errorStepsUpdate[errorStepsUpdate.findIndex(val => val.id === item.id)]["errors"]["description"]}`.replace('description','Deskripsi')}</span>
                 </div>
               </div>)  
               })}
@@ -690,7 +804,10 @@ const TransportationForm: React.FC = () => {
                     <button
                       type="button"
                       className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                      onClick={()=>removeArrayItemSteps(index)}
+                      onClick={()=>{
+                        deleteErrorStepsCreate(item.index, "");
+                        removeArrayItemSteps(index);
+                      }}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -707,11 +824,15 @@ const TransportationForm: React.FC = () => {
                       type="text"
                       name="duration"
                       value={item.step.duration}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsCreate.find(val => val.index === item.index && val.errors["duration"]) ? "border-red-600" : ""}`}
                       placeholder="cth: 1-2 Jam"
-                      onChange={(e)=>handleArrayChangeSteps(index, "duration", e.target.value)}
+                      onChange={(e)=>{
+                        deleteErrorStepsCreate(item.index, "duration");
+                        handleArrayChangeSteps(index, "duration", e.target.value);
+                      }}
                       required
                     />
+                    <span className="text-red-600 text-sm">{errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)] && errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["duration"] && `*${errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["duration"]}`.replace('duration','Durasi')}</span>
                   </div>
 
                   <div>
@@ -723,11 +844,16 @@ const TransportationForm: React.FC = () => {
                       type="text"
                       name="cost"
                       value={item.step.cost}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsCreate.find(val => val.index === item.index && val.errors["cost"]) ? "border-red-600" : ""}`}
                       placeholder="cth: Rp 50.000 - Rp 100.000"
-                      onChange={(e)=>handleArrayChangeSteps(index, "cost", e.target.value)}
+                      onChange={(e)=>{
+                        deleteErrorStepsCreate(item.index, "cost");
+                        handleArrayChangeSteps(index, "cost", e.target.value);
+                        }
+                      }
                       required
                     />
+                    <span className="text-red-600 text-sm">{errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)] && errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["cost"] && `*${errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["cost"]}`.replace('cost','Biaya')}</span>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -738,11 +864,15 @@ const TransportationForm: React.FC = () => {
                       type="text"
                       name="vehicle"
                       value={item.step.vehicle}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsCreate.find(val => val.index === item.index && val.errors["vehicle"]) ? "border-red-600" : ""}`}
                       placeholder="cth: Bus / Travel"
-                      onChange={(e)=>handleArrayChangeSteps(index, "vehicle", e.target.value)}
+                      onChange={(e)=>{
+                        deleteErrorStepsCreate(item.index, "vehicle");
+                        handleArrayChangeSteps(index, "vehicle", e.target.value);
+                      }}
                       required
                     />
+                  <span className="text-red-600 text-sm">{errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)] && errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["vehicle"] && `*${errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["vehicle"]}`.replace('vehicle','Kendaraan')}</span>
                   </div>
                 </div>
 
@@ -752,13 +882,17 @@ const TransportationForm: React.FC = () => {
                   </label>
                   <textarea
                     disabled={isLoadingForm}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorStepsCreate.find(val => val.index === item.index && val.errors["description"]) ? "border-red-600" : ""}`}
                     placeholder="Masukkan deskripsi dari langkah"
                     value={item.step.description}
                     rows={2}
-                    onChange={(e)=>handleArrayChangeSteps(index, "description", e.target.value)}
+                    onChange={(e)=>{
+                      deleteErrorStepsCreate(item.index, "description");
+                      handleArrayChangeSteps(index, "description", e.target.value);
+                    }}
                     required
                   />
+                  <span className="text-red-600 text-sm">{errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)] && errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["description"] && `*${errorStepsCreate[errorStepsCreate.findIndex(val => val.index === item.index)]["errors"]["description"]}`.replace('description','Deskripsi')}</span>
                 </div>
               </div>)  
               })}
@@ -785,55 +919,69 @@ const TransportationForm: React.FC = () => {
               id && tipsUpdate.map((item, index) => {
               return (
               !tipsDeletedTempPreview.find(val => val === item.id) &&
-              <div key={index} className="flex items-center space-x-2 ">
-                <input
-                  disabled={isLoadingForm}
-                  type="text"
-                  value={item.tip}
-                  onChange={(e) => {
-                    handleArrayChangeTipsUpdate(index, "tip", e.target.value);
-                    if(!tipsUpdatedTemp.includes(index)) {
-                      addArrayItemTipsUpdatedTemp(index);
-                    }
-                  }}
-                  className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                  placeholder="Tips terkait transportasi"
-                  required
-                />
-                <button
-                  key={`button-tips-delete-${index}`}
-                  type="button"
-                  onClick={() => {
-                    addArrayItemTipsDeletedTemp(item.id);
-                  }}
-                  className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                  disabled={isLoadingForm}
-                >
-                  <X className="h-4 w-4" />
-                </button>
+              <div key={index} className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    disabled={isLoadingForm}
+                    type="text"
+                    value={item.tip}
+                    onChange={(e) => {
+                      deleteErrorTipsUpdate(item.id);
+                      handleArrayChangeTipsUpdate(index, "tip", e.target.value);
+                      if(!tipsUpdatedTemp.includes(index)) {
+                        addArrayItemTipsUpdatedTemp(index);
+                      }
+                    }}
+                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTipsUpdate.find(val => val.id === item.id) ? "border-red-600" : ""}`}
+                    placeholder="Tips terkait transportasi"
+                    required
+                  />
+                  <button
+                    key={`button-tips-delete-${index}`}
+                    type="button"
+                    onClick={() => {
+                      deleteErrorTipsUpdate(item.id);
+                      addArrayItemTipsDeletedTemp(item.id);
+                    }}
+                    className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    disabled={isLoadingForm}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <span className="text-red-600 text-sm">{errorTipsUpdate[errorTipsUpdate.findIndex(val => val.id === item.id)] && `*${errorTipsUpdate[errorTipsUpdate.findIndex(val => val.id === item.id)]["errors"]["tip"]}`.replace('tip','Tips')}</span>
               </div>)
               }) 
             }
             {
               tips.map((item, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    disabled={isLoadingForm}
-                    type="text"
-                    value={item.tip}
-                    onChange={(e) => handleArrayChangeTips(index, e.target.value)}
-                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                    placeholder="Tips terkait transportasi"
-                    required
-                  />
-                  <button
-                    disabled={isLoadingForm}
-                    type="button"
-                    onClick={() => removeArrayItemTips(index)}
-                    className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      disabled={isLoadingForm}
+                      type="text"
+                      value={item.tip}
+                      onChange={(e) => {
+                        deleteErrorTipsCreate(item.index);
+                        handleArrayChangeTips(index, e.target.value);
+                      }}
+                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorTipsCreate.find(val => val.index === item.index) ? "border-red-600" : ""}`}
+                      placeholder="Tips terkait transportasi"
+                      required
+                    />
+                    <button
+                      disabled={isLoadingForm}
+                      type="button"
+                      onClick={() => {
+                        deleteErrorTipsCreate(item.index);
+                        removeArrayItemTips(index);
+                      }}
+                      className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <span className="text-red-600 text-sm">{errorTipsCreate[errorTipsCreate.findIndex(val => val.index === item.index)] && `*${errorTipsCreate[errorTipsCreate.findIndex(val => val.index === item.index)]["errors"]["tip"]}`.replace('tip','Tips')}</span>
                 </div>
               ))
             }

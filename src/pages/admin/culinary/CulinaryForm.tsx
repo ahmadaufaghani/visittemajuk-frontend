@@ -51,7 +51,14 @@ const CulinaryForm: React.FC = () => {
   const [previews, setPreviews] = useState<{index: number, filename: string}[]>([]);
   const categories = ['Seafood', 'Indonesia', 'Kafe', 'Lokal', 'Tradisional'];
   const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
+
+  const [errorCulinary, setErrorCulinary] = useState<Record<string, string[]>>();
   
+  const [errorSpecialtyCreate, setErrorSpecialtyCreate] = useState<{index: number, errors: Record<string, string[]>}[]>([]);
+
+  const [errorSpecialtyUpdate, setErrorSpecialtyUpdate] = useState<{id: number, errors: Record<string, string[]>}[]>([]);
+
+  const [errorGalleryCreate, setErrorGalleryCreate] = useState<{index: number, errors: Record<string, string[]>}[]>([]);
   const showCulinary = async (id: number) => {
     try {
       setIsLoading(true);
@@ -99,6 +106,7 @@ const CulinaryForm: React.FC = () => {
     } catch (err) {
       setIsLoadingForm(false);
       if(err instanceof ApiError) {
+        setErrorCulinary(err.errors);
         handleApiError(err.errors);
       }
       return false;
@@ -109,13 +117,14 @@ const CulinaryForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        specialties.map(async (val, index) => {
+        specialties.map((val, index) => {
           if(!lastSpecialtySuccess.includes(val.index)) {
             setLastSpecialtySuccess(prev => [...prev, val.index]);
-            return await createSpeciality({menu: val.menu.trim(), order: idCulinary && specialtiesUpdate.length > 0 ? specialtiesUpdate[specialtiesUpdate.length-1] && specialtiesUpdate[specialtiesUpdate.length-1].order + (index + 1) : index + 1, culinary_id: id}, user.token as string)
+            return createSpeciality({menu: val.menu.trim(), order: idCulinary && specialtiesUpdate.length > 0 ? specialtiesUpdate[specialtiesUpdate.length-1] && specialtiesUpdate[specialtiesUpdate.length-1].order + (index + 1) : index + 1, culinary_id: id}, user.token as string)
             .catch((err) => {
               setLastSpecialtySuccess(prev => prev.filter(item => item !== val.index));
               if(err instanceof ApiError) {
+                  setErrorSpecialtyCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
                   throw new Error(`Menu spesial gagal ditambahkan. Error: ${err.message}`);
                 }
               });
@@ -139,16 +148,17 @@ const CulinaryForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        galleries.map(async (val, index) => {
+        galleries.map((val, index) => {
           if(!lastGallerySuccess.includes(val.index)) {
             setLastGallerySuccess(prev => [...prev, val.index]);
             const formGallery = new FormData();
             formGallery.append("image",val.file);
             formGallery.append("order", String(idCulinary && galleriesUpdate.length > 0 ? galleriesUpdate[galleriesUpdate.length-1] && galleriesUpdate[galleriesUpdate.length-1].order + (index + 1) : index + 1));
             formGallery.append("culinary_id", String(id));
-            return await createGallery(formGallery, user.token as string)
+            return createGallery(formGallery, user.token as string)
             .catch((err) => {
               if(err instanceof ApiError) {
+                setErrorGalleryCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
                 throw new Error(`Galeri gagal ditambahkan. Error: ${err.message}`);
               }
             });
@@ -188,6 +198,9 @@ const CulinaryForm: React.FC = () => {
       setIsLoadingForm(false);
       return true;
     } catch (err) {
+        if(err instanceof ApiError) {
+          setErrorCulinary(err.errors);
+        }
         setIsLoadingForm(false);
         handleApiError(err);
         return false;
@@ -211,6 +224,7 @@ const CulinaryForm: React.FC = () => {
             .catch((err) => {
               setSpecialitiesUpdatedTemp(prev => [...prev, val]);
               if(err instanceof ApiError) {
+                setErrorSpecialtyUpdate(prev => [...prev, {id: specialty.id, errors: {...err.errors}}]);
                 throw new Error(`Menu spesial gagal diperbarui. Error: ${err.message}`);
               }
             });
@@ -262,8 +276,29 @@ const CulinaryForm: React.FC = () => {
     }
   }
 
+  const deleteErrorCulinary = (key: string) => {
+    setErrorCulinary(prev => {
+      if(!prev) return;
+
+      const {[key]:_, ...newData} = prev;
+      return newData;
+    })
+  }
+
+  const deleteErrorSpecialtyCreate = (id: number) => {
+    errorSpecialtyCreate.find(val => val.index === id) && setErrorSpecialtyCreate(prev => prev.filter(val => val.index !== id));
+  }
+
+  const deleteErrorSpecialtyUpdate = (id: number) => {
+    errorSpecialtyUpdate.find(val => val.id === id) && setErrorSpecialtyUpdate(prev => prev.filter(val => val.id !== id));
+  }
+
+  const deleteErrorGalleryCreate = (id: number) => {
+    errorGalleryCreate.find(val => val.index === id) && setErrorGalleryCreate(prev => prev.filter(val => val.index !== id));
+  }
+
   const addArrayItemSpecialties = () => {
-    setSpecialities(prev => [...prev, {index:0, menu:''}]);
+    setSpecialities(prev => [...prev, {index:prev.length === 0 ? 1 : prev[prev.length - 1].index + 1, menu:''}]);
   }
 
   const addArrayItemGalleries = (i: number, val: File) => {
@@ -275,6 +310,8 @@ const CulinaryForm: React.FC = () => {
   }
 
   const addArrayDeletedSpecialitiesTemp = (val: number) => {
+    const index = specialtiesUpdate.findIndex(item => item.id === val);
+    setSpecialitiesUpdatedTemp(prev => prev.filter(val => val !== index));
     setSpecialtiesDeletedTemp(prev => [...prev, val]);
     setSpecialtiesDeletedTempPreview(prev => [...prev, val]);
   }
@@ -286,13 +323,9 @@ const CulinaryForm: React.FC = () => {
 
   const handleArrayChangeSpecialties = (index: number, value: string) => {
     setSpecialities(specialties.map((item, i) => i === index ? {
-    index:
-      specialties.length > 0 
-      ? 
-      specialties[index].index !== 0 ? specialties[index].index :  specialties[specialties.length - 1 ].index + index + 1 
-      : 
-      specialties.length + 1,
-    menu:value}  : item));
+    ...item,
+    menu:value}  
+    : item));
   };
 
 
@@ -317,6 +350,10 @@ const CulinaryForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorCulinary({});
+    setErrorSpecialtyCreate([]);
+    setErrorSpecialtyUpdate([]);
+    setErrorGalleryCreate([]);
     if(idCulinary) {
       const culinaryUpdate = await updateCulinaryData(idCulinary);
       const specialty = await addSpecialtiesData(idCulinary);
@@ -398,11 +435,15 @@ const CulinaryForm: React.FC = () => {
                   type="text"
                   name="title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  onChange={(e) => {
+                    deleteErrorCulinary("title");
+                    setTitle(e.target.value);
+                  }}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["title"] ? "border-red-600" : ""}`}
                   required
                   placeholder="cth: Rumah Makan Sari Rasa"
                 />
+                <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["title"] && `*${errorCulinary["title"].toString().replace("title", "Nama Tempat")}`}</span>
               </div>
 
               <div>
@@ -413,8 +454,11 @@ const CulinaryForm: React.FC = () => {
                   disabled={isLoadingForm}
                   name="category"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  onChange={(e) => {
+                    deleteErrorCulinary("category");
+                    setCategory(e.target.value);
+                  }}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["category"] ? "border-red-600" : ""}`}
                   required
                 >
                   <option value="">Pilih Kategori</option>
@@ -422,6 +466,7 @@ const CulinaryForm: React.FC = () => {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
+                <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["category"] && `*${errorCulinary["category"].toString().replace("category", "Kategori")}`}</span>
               </div>
 
               <div>
@@ -433,11 +478,15 @@ const CulinaryForm: React.FC = () => {
                   type="text"
                   name="price"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => {
+                    deleteErrorCulinary("price");
+                    setPrice(e.target.value);
+                  }}
                   placeholder="cth: Rp 25.000 - Rp 100.000"
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["price"] ? "border-red-600" : ""}`}
                   required
                 />
+                <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["price"] && `*${errorCulinary["price"].toString().replace("price", "Harga")}`}</span>
               </div>
 
               <div>
@@ -449,11 +498,15 @@ const CulinaryForm: React.FC = () => {
                   type="text"
                   name="openHours"
                   value={openHours}
-                  onChange={(e) => setOpenHours(e.target.value)}
+                  onChange={(e) => {
+                    deleteErrorCulinary("open_hours");
+                    setOpenHours(e.target.value);
+                  }}
                   placeholder="cth: 11.00 - 21.00 WIB"
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["open_hours"] ? "border-red-600" : ""}`}
                   required
                 />
+                <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["open_hours"] && `*${errorCulinary["open_hours"].toString().replace("open hours", "Jam Buka")}`}</span>
               </div>
 
               <div className="md:col-span-2">
@@ -465,10 +518,14 @@ const CulinaryForm: React.FC = () => {
                   type="text"
                   name="contact"
                   value={contact}
-                  onChange={(e) => setContact(e.target.value)}
+                  onChange={(e) => {
+                    deleteErrorCulinary("contact");
+                    setContact(e.target.value);
+                  }}
                   placeholder="cth: +62 8123 4567 890"
-                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["contact"] ? "border-red-600" : ""}`}
                 />
+                <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["contact"] && `*${errorCulinary["contact"].toString().replace("contact", "Kontak")}`}</span>
               </div>
             </div>
 
@@ -480,12 +537,16 @@ const CulinaryForm: React.FC = () => {
                 disabled={isLoadingForm}
                 name="location"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  deleteErrorCulinary("location");
+                  setLocation(e.target.value);
+                }}
                 rows={2}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["location"] ? "border-red-600" : ""}`}
                 required
                 placeholder="cth: Jl. Utama Temajuk No. 25, Desa Temajuk, Kecamatan Paloh, Kabupaten Sambas"
               />
+              <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["location"] && `*${errorCulinary["location"].toString().replace("location", "Alamat")}`}</span>
             </div>
 
             <div className="mt-6">
@@ -494,9 +555,12 @@ const CulinaryForm: React.FC = () => {
               </label>
               <textarea
                 disabled={isLoadingForm}
-                name="location"
+                name="location_map"
                 value={locationMap ?? ""}
-                onChange={(e) => setLocationMap(e.target.value)}
+                onChange={(e) => {
+                  deleteErrorCulinary("location_map");
+                  setLocationMap(e.target.value);
+                }}
                 rows={2}
                 className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
                 placeholder="cth: https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d127601.4652245904!2d109.52879789999999!3d1..."
@@ -512,14 +576,14 @@ const CulinaryForm: React.FC = () => {
                 <img
                   src={preview ? preview : storageUrl(image as string)}
                   alt="Pratinjau gambar utama"
-                  className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
+                  className={`h-32 w-full md:w-56 object-cover rounded border border-gray-200 ${errorCulinary && errorCulinary["image"] ? "border-2 border-red-600" : ""}`}
                 />
               ) : (
                 <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
                   Belum ada gambar
                 </div>
               )}
-              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md ${isLoadingForm ? "cursor-not-allowed" : "cursor pointer"} transition-colors`}>
+              <label className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md ${isLoadingForm ? "cursor-not-allowed" : "cursor pointer"} transition-colors w-fit`}>
                 <Upload className="h-4 w-4" />
                 <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
                 <input
@@ -529,6 +593,7 @@ const CulinaryForm: React.FC = () => {
                   accept="image/jpeg,image/webp"
                   className="hidden"
                   onChange={(e) => {
+                    deleteErrorCulinary("image");
                     const target = e.target as HTMLInputElement & {
                       files : FileList;
                     }
@@ -544,6 +609,19 @@ const CulinaryForm: React.FC = () => {
                 <p className="text-xs text-gray-500">Kosongkan jika tidak ingin mengubah gambar. Format: JPG, JPEG, WebP. Maks 1 MB.</p>
               )}
               </div>
+              <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["image"] && `*${errorCulinary["image"].map(val=>{
+                  let message = '';
+                  if(val.includes("max")) {
+                    message += "Ukuran gambar melebihi 1 MB;"
+                  }
+
+                  if(val.includes('mimes')) {
+                    message += "Ekstensi gambar tidak sesuai;"
+                  }
+
+                  return message;
+              }).join(" ")}`}
+              </span>
             </div>
 
             <div className="mt-6">
@@ -554,12 +632,16 @@ const CulinaryForm: React.FC = () => {
                 disabled={isLoadingForm}
                 name="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  deleteErrorCulinary("description");
+                  setDescription(e.target.value);
+                }}
                 rows={3}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["description"] ? "border-red-600" : ""}`}
                 required
                 placeholder="Masukkan deskripsi singkat dari tempat kuliner"
               />
+              <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["description"] && `*${errorCulinary["description"].toString().replace("description", "Deskripsi")}`}</span>
             </div>
 
             <div className="mt-6">
@@ -570,12 +652,16 @@ const CulinaryForm: React.FC = () => {
                 disabled={isLoadingForm}
                 name="fullDescription"
                 value={fullDescription}
-                onChange={(e) => setFullDescription(e.target.value)}
+                onChange={(e) => {
+                  deleteErrorCulinary("full_description");
+                  setFullDescription(e.target.value);
+                }}
                 rows={5}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorCulinary && errorCulinary["full_description"] ? "border-red-600" : ""}`}
                 required
                 placeholder="Masukkan deskripsi lengkap dari tempat kuliner"
               />
+              <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["full_description"] && `*${errorCulinary["full_description"].toString().replace("full description", "Deskripsi Lengkap")}`}</span>
             </div>
           </div>
 
@@ -600,56 +686,70 @@ const CulinaryForm: React.FC = () => {
               return (
                 !specialtiesDeletedTempPreview.find(val => val === item.id) 
                 &&
-                <div key={index} className="flex items-center space-x-2 ">
-                  <input
-                    disabled={isLoadingForm}
-                    required
-                    type="text"
-                    value={item.menu}
-                    onChange={(e) => {
-                        handleArrayChangeSpecialtiesUpdate(index, e.target.value);
-                        if(!specialtiesUpdatedTemp.includes(index)) {
-                          addArraySpecialitiesUpdatedTemp(index);
-                        }
-                    }}
-                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                    placeholder="Nama menu spesial"
-                  />
-                  <button
-                    disabled={isLoadingForm}
-                    key={`button-speciality-delete-${index}`}
-                    type="button"
-                    onClick={() => {
-                      addArrayDeletedSpecialitiesTemp(item.id);
-                    }}
-                    className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                  > 
-                      <X className="h-4 w-4" />
-                  </button>
+                <div key={index} className="space-y-2 ">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      disabled={isLoadingForm}
+                      required
+                      type="text"
+                      value={item.menu}
+                      onChange={(e) => {
+                          deleteErrorSpecialtyUpdate(item.id);
+                          handleArrayChangeSpecialtiesUpdate(index, e.target.value);
+                          if(!specialtiesUpdatedTemp.includes(index)) {
+                            addArraySpecialitiesUpdatedTemp(index);
+                          }
+                      }}
+                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-md ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorSpecialtyUpdate.find(val => val.id === item.id && val.errors["menu"]) ? "border-red-600" : ""}`}
+                      placeholder="Nama menu spesial"
+                    />
+                    <button
+                      disabled={isLoadingForm}
+                      key={`button-speciality-delete-${index}`}
+                      type="button"
+                      onClick={() => {
+                        deleteErrorSpecialtyUpdate(item.id);
+                        addArrayDeletedSpecialitiesTemp(item.id);
+                      }}
+                      className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    > 
+                        <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <span className="text-red-600 text-sm">{errorSpecialtyUpdate[errorSpecialtyUpdate.findIndex(val => val.id === item.id)] && errorSpecialtyUpdate[errorSpecialtyUpdate.findIndex(val => val.id === item.id)]["errors"]["menu"] && `*${errorSpecialtyUpdate[errorSpecialtyUpdate.findIndex(val => val.id === item.id)]["errors"]["menu"]}`.replace('menu','Menu spesial')}</span>
                 </div>
               )
             }) 
             }       
             {
-              specialties.map((specialty, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    disabled={isLoadingForm}
-                    required
-                    type="text"
-                    value={specialty.menu}
-                    onChange={(e) => handleArrayChangeSpecialties(index, e.target.value)}
-                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                    placeholder="Nama menu spesial"
-                  />
-                  <button
-                    disabled={isLoadingForm}
-                    type="button"
-                    onClick={() => removeArrayItemSpecialties(index)}
-                    className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+              specialties.map((item, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      disabled={isLoadingForm}
+                      required
+                      type="text"
+                      value={item.menu}
+                      onChange={(e) => {
+                        deleteErrorSpecialtyCreate(item.index);
+                        handleArrayChangeSpecialties(index, e.target.value);
+                      }}
+                      className={`flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${isLoadingForm ? "cursor-not-allowed" : ""} ${errorSpecialtyCreate.find(val => val.index === item.index && val.errors["menu"]) ? "border-red-600" : ""}`}
+                      placeholder="Nama menu spesial"
+                    />
+                    <button
+                      disabled={isLoadingForm}
+                      type="button"
+                      onClick={() => {
+                        deleteErrorSpecialtyCreate(item.index);
+                        removeArrayItemSpecialties(index);
+                      }}
+                      className={`text-red-600 hover:text-red-800 ${isLoadingForm ? "cursor-not-allowed" : ""}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <span className="text-red-600 text-sm">{errorSpecialtyCreate[errorSpecialtyCreate.findIndex(val => val.index === item.index)] && errorSpecialtyCreate[errorSpecialtyCreate.findIndex(val => val.index === item.index)]["errors"]["menu"] && `*${errorSpecialtyCreate[errorSpecialtyCreate.findIndex(val => val.index === item.index)]["errors"]["menu"]}`.replace('menu','Menu spesial')}</span>
                 </div>
               ))
             }
@@ -728,23 +828,39 @@ const CulinaryForm: React.FC = () => {
                   <p className="text-sm text-gray-500 mb-2">Gambar baru yang akan ditambahkan:</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {previews.map((preview, index) => (
-                      <div key={index} className="relative group rounded-md overflow-hidden border border-gray-200">
-                        <img
-                          src={preview.filename}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-32 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            removeArrayItemGalleries(preview.index);
-                            removeArrayItemGalleriesPreview(preview.index);
-                          }}
-                          className="absolute top-2 right-2 inline-flex items-center justify-center h-7 w-7 rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label="Hapus gambar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div key={index}  className="space-y-2">
+                        <div className={`relative group rounded-md overflow-hidden border border-gray-200 ${errorGalleryCreate.find(val => val.index === preview.index && val.errors["image"]) ? "border-2 border-red-600" : ""}`}>
+                          <img
+                            src={preview.filename}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteErrorGalleryCreate(preview.index);
+                              removeArrayItemGalleries(preview.index);
+                              removeArrayItemGalleriesPreview(preview.index);
+                            }}
+                            className="absolute top-2 right-2 inline-flex items-center justify-center h-7 w-7 rounded-full bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Hapus gambar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <span className="text-red-600 text-sm">{errorGalleryCreate[errorGalleryCreate.findIndex(val => val.index === preview.index)] && errorGalleryCreate[errorGalleryCreate.findIndex(val => val.index === preview.index)]["errors"] && `${errorGalleryCreate[errorGalleryCreate.findIndex(val => val.index === preview.index)]["errors"]["image"].map(val => {
+                          let message = '';
+                          if(val.includes("max")) {
+                            message += "*Ukuran gambar melebihi 1 MB;"
+                          }
+
+                          if(val.includes('mimes')) {
+                            message += "*Ekstensi gambar tidak sesuai;"
+                          }
+
+                          return message;
+                        }).join(" ")}`}
+                      </span>
                       </div>
                     ))}
                   </div>
