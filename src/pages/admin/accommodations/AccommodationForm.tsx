@@ -120,7 +120,7 @@ const AccommodationForm: React.FC = () => {
     const formBody = new FormData();
     formBody.append('title', title.trim());
     formBody.append('description', description.trim());
-    formBody.append('full_description', fullDescription.trim());
+    formBody.append('fullDescription', fullDescription.trim());
     if (image instanceof File) {
       formBody.append('image', image);
     }
