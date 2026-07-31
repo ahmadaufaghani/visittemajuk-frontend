@@ -65,9 +65,10 @@ const emptySocialForm: SocialFormState = {
 const SiteSettingsPage: React.FC = () => {
   const { token } = useAuth();
   const { settings, reload, isLoading } = useSiteSettings();
-  const { socials, reload: reloadSocials, isLoading: isLoadingSocials } = useFooterSocials();
+  const { socials, reload: reloadSocials, isLoading: isLoadingSocials, error: socialsError } = useFooterSocials(token);
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [isSaving, setIsSaving] = useState(false);
+  const [isSocialSaving, setIsSocialSaving] = useState(false);
 
   // Home fields
   const [heroTitle, setHeroTitle] = useState('');
@@ -265,7 +266,11 @@ const SiteSettingsPage: React.FC = () => {
 
   const handleSocialSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!token) return;
+    if (isSocialSaving) return;
+    if (!token) {
+      toast.error('Sesi admin tidak valid. Silakan login ulang.');
+      return;
+    }
     if (!socialForm.url.trim()) {
       setSocialFormError('URL wajib diisi.');
       return;
@@ -278,6 +283,7 @@ const SiteSettingsPage: React.FC = () => {
       order: Number(socialForm.order) || 0,
     };
 
+    setIsSocialSaving(true);
     try {
       if (editingSocialId !== null) {
         await updateFooterSocial(editingSocialId, payload, token);
@@ -293,11 +299,16 @@ const SiteSettingsPage: React.FC = () => {
     } catch (caught) {
       const msg = caught instanceof Error ? caught.message : 'Gagal menyimpan.';
       setSocialFormError(msg);
+    } finally {
+      setIsSocialSaving(false);
     }
   };
 
   const handleSocialDelete = async (id: number) => {
-    if (!token) return;
+    if (!token) {
+      toast.error('Sesi admin tidak valid. Silakan login ulang.');
+      return;
+    }
     showConfirm({
       title: 'Hapus Media Sosial',
       message: 'Hapus tautan media sosial ini?',
@@ -561,6 +572,15 @@ const SiteSettingsPage: React.FC = () => {
                   </button>
                 </div>
 
+                {socialsError && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
+                    <svg className="h-5 w-5 text-red-600 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-red-700 text-sm">{socialsError}</span>
+                  </div>
+                )}
+
                 {isLoadingSocials ? (
                   <p className="text-gray-500 text-center py-4">Memuat media sosial...</p>
                 ) : socials.length === 0 ? (
@@ -711,7 +731,7 @@ const SiteSettingsPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
                 <input type="url" value={socialForm.url}
-                  onChange={(e) => setSocialForm({ ...socialForm, url: e.target.value })} required
+                  onChange={(e) => setSocialForm({ ...socialForm, url: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="https://instagram.com/visit.temajuk" />
               </div>
@@ -724,8 +744,10 @@ const SiteSettingsPage: React.FC = () => {
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setIsSocialFormOpen(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">Batal</button>
-                <button type="submit"
-                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-md">Simpan</button>
+                <button type="submit" disabled={isSocialSaving}
+                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-md disabled:opacity-60 disabled:cursor-not-allowed">
+                  {isSocialSaving ? 'Menyimpan...' : 'Simpan'}
+                </button>
               </div>
             </form>
           </div>
