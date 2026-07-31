@@ -123,6 +123,8 @@ const Reviews: React.FC = () => {
       setFormDestination('');
       setFormRating(undefined);
       setFormReviews('');
+      setPage(1);
+      updateSearchParams({ page: '' });
     } catch (caught) {
       handleApiError(caught);
     } finally {
@@ -135,6 +137,8 @@ const Reviews: React.FC = () => {
     setSearchTerm('');
     setSelectedDestinationSlug(ALL_DESTINATIONS);
     setSelectedRating(undefined);
+    setPage(1);
+    updateSearchParams({ search: '', destination: '', rating: '', page: '' });
   };
 
   return (
