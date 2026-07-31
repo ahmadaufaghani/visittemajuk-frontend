@@ -29,7 +29,7 @@ const PhotoSpots: React.FC = () => {
       perPage: 9,
     },
   });
-  const { tips: photographyTips, isLoading: isLoadingTips } = usePhotographyTips();
+  const { tips: photographyTips, isLoading: isLoadingTips, error: tipsError } = usePhotographyTips();
 
   const categories = [...new Set(meta.filters.categories.map((category) => category))];
   const pagination = meta.pagination;
@@ -221,6 +221,8 @@ const PhotoSpots: React.FC = () => {
             <div className="text-center py-8">
               <PuffLoader color="#4B5563" loading={isLoadingTips} size={40} className="mx-auto" />
             </div>
+          ) : tipsError ? (
+            <p className="text-center text-red-600 mt-8">{tipsError}</p>
           ) : photographyTips.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
               {photographyTips.map((tip) => (
