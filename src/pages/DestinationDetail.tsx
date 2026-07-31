@@ -60,7 +60,7 @@ const DestinationDetail: React.FC = () => {
 
   const sliderSettings = {
     dots: true,
-    infinite: true,
+    infinite: !(destination && destination.galleries.length === 1),
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
