@@ -326,9 +326,9 @@ const DestinationList: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="space-y-4 md:flex md:justify-between md:items-center">
         <h1 className="text-2xl font-bold text-gray-800">Manajemen Destinasi</h1>
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-col items-end sm:flex-row sm:items-center sm:justify-end gap-2">
           <button
             onClick={async()=> {
               overlay.changeStatus(true);

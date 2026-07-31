@@ -632,14 +632,12 @@ const TransportationForm: React.FC = () => {
               </div>
               <span className="text-red-600 text-sm">{errorTransportation && errorTransportation["image"] && `*${errorTransportation["image"].map(val=>{
                   let message = '';
-                  if(val.includes("max")) {
-                    message += "Ukuran gambar melebihi 1 MB;"
+                  if(val.includes('jpg, jpeg, webp') || val.includes('max')) {
+                    message += "Ekstensi gambar tidak sesuai;";
                   }
-
-                  if(val.includes('mimes')) {
-                    message += "Ekstensi gambar tidak sesuai;"
+                  if(val.includes('1024 KB') || val.includes('size')) {
+                    message += "Ukuran gambar lebih dari 1 MB;";
                   }
-
                   return message;
               }).join(" ")}`}
               </span>

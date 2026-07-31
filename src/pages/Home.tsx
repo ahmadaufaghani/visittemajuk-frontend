@@ -439,40 +439,6 @@ const Home: React.FC = () => {
           )}
         </div>
       </section>
-
-      <section className="py-16 bg-accent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4 font-heading">
-              {titles?.newsletter ?? 'Dapatkan Informasi Terbaru'}
-            </h2>
-            <p className="text-primary-dark mb-8 text-lg max-w-3xl mx-auto">
-              Berlangganan newsletter kami untuk mendapatkan informasi terbaru tentang destinasi, event,
-              dan promo menarik di Temajuk.
-            </p>
-            <form
-              className="max-w-md mx-auto"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  id="newsletter-email"
-                  name="email"
-                  type="email"
-                  placeholder="Alamat Email Anda"
-                  className="flex-grow px-4 py-3 rounded-md border-2 border-white focus:border-primary focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="bg-primary hover:bg-primary-dark text-white font-medium px-6 py-3 rounded-md shadow transition-all duration-300 sm:flex-shrink-0"
-                >
-                  Berlangganan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };

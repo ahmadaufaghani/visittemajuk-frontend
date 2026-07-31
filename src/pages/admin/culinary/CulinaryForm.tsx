@@ -107,8 +107,8 @@ const CulinaryForm: React.FC = () => {
       setIsLoadingForm(false);
       if(err instanceof ApiError) {
         setErrorCulinary(err.errors);
-        handleApiError(err.errors);
       }
+      toast.error("Kuliner gagal ditambahkan.");
       return false;
     }
   }
@@ -148,15 +148,16 @@ const CulinaryForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        galleries.map((val, index) => {
+        galleries.map((val) => {
           if(!lastGallerySuccess.includes(val.index)) {
             setLastGallerySuccess(prev => [...prev, val.index]);
             const formGallery = new FormData();
             formGallery.append("image",val.file);
-            formGallery.append("order", String(idCulinary && galleriesUpdate.length > 0 ? galleriesUpdate[galleriesUpdate.length-1] && galleriesUpdate[galleriesUpdate.length-1].order + (index + 1) : index + 1));
+            formGallery.append("order", String(galleriesUpdate.length > 0 ? galleriesUpdate[galleriesUpdate.length-1]["order"] + val.index : val.index));
             formGallery.append("culinary_id", String(id));
             return createGallery(formGallery, user.token as string)
             .catch((err) => {
+              setLastGallerySuccess(prev => prev.filter(item => item !== val.index));
               if(err instanceof ApiError) {
                 setErrorGalleryCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
                 throw new Error(`Galeri gagal ditambahkan. Error: ${err.message}`);
@@ -177,7 +178,7 @@ const CulinaryForm: React.FC = () => {
           return false;
       }
   }
-
+  
   const updateCulinaryData = async (id : number): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
@@ -202,7 +203,7 @@ const CulinaryForm: React.FC = () => {
           setErrorCulinary(err.errors);
         }
         setIsLoadingForm(false);
-        handleApiError(err);
+        toast.error("Kuliner gagal diperbarui.");
         return false;
     }
   }
@@ -385,7 +386,6 @@ const CulinaryForm: React.FC = () => {
       } 
     }
   };
-
   
   useEffect(() => {
     if (isEdit && id) {
@@ -611,14 +611,12 @@ const CulinaryForm: React.FC = () => {
               </div>
               <span className="text-red-600 text-sm">{errorCulinary && errorCulinary["image"] && `*${errorCulinary["image"].map(val=>{
                   let message = '';
-                  if(val.includes("max")) {
-                    message += "Ukuran gambar melebihi 1 MB;"
+                  if(val.includes('jpg, jpeg, webp') || val.includes('max')) {
+                    message += "Ekstensi gambar tidak sesuai;";
                   }
-
-                  if(val.includes('mimes')) {
-                    message += "Ekstensi gambar tidak sesuai;"
+                  if(val.includes('1024 KB') || val.includes('size')) {
+                    message += "Ukuran gambar lebih dari 1 MB;";
                   }
-
                   return message;
               }).join(" ")}`}
               </span>
@@ -850,14 +848,12 @@ const CulinaryForm: React.FC = () => {
                         </div>
                         <span className="text-red-600 text-sm">{errorGalleryCreate[errorGalleryCreate.findIndex(val => val.index === preview.index)] && errorGalleryCreate[errorGalleryCreate.findIndex(val => val.index === preview.index)]["errors"] && `${errorGalleryCreate[errorGalleryCreate.findIndex(val => val.index === preview.index)]["errors"]["image"].map(val => {
                           let message = '';
-                          if(val.includes("max")) {
-                            message += "*Ukuran gambar melebihi 1 MB;"
+                          if(val.includes('jpg, jpeg, webp') || val.includes('max')) {
+                            message += "Ekstensi gambar tidak sesuai;";
                           }
-
-                          if(val.includes('mimes')) {
-                            message += "*Ekstensi gambar tidak sesuai;"
+                          if(val.includes('1024 KB') || val.includes('size')) {
+                            message += "Ukuran gambar lebih dari 1 MB;";
                           }
-
                           return message;
                         }).join(" ")}`}
                       </span>
