@@ -6,7 +6,7 @@ export interface Review {
     created_at: string,
     updated_at: string,
     destination: {
-        id : number,
+        id : string,
         title : string
     }
 }

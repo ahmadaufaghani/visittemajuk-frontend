@@ -5,8 +5,9 @@ import type {
   FooterSocialPayload,
 } from '../types/footerSocial';
 
-export async function listFooterSocials(): Promise<FooterSocialListResult> {
-  const response = await apiRequest<FooterSocial[]>('/footer/socials');
+export async function listFooterSocials(token?: string): Promise<FooterSocialListResult> {
+  const endpoint = token ? '/admin/footer/socials' : '/footer/socials';
+  const response = await apiRequest<FooterSocial[]>(endpoint, token ? { token } : undefined);
 
   return { socials: response.data ?? [] };
 }

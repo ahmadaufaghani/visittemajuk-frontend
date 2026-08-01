@@ -60,7 +60,7 @@ const AccommodationDetail: React.FC = () => {
 
   const sliderSettings = {
     dots: true,
-    infinite: true,
+    infinite: !(accommodation && accommodation.accomodation_galleries.length === 1),
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,

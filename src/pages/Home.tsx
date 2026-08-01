@@ -66,9 +66,12 @@ const Home: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const featuredDestinations = destinations.slice(0, 3);
+  const featuredReviews = reviews?.slice(0, 4) ?? [];
+
   const sliderSettings = {
     dots: true,
-    infinite: true,
+    infinite: destinations.length > 1,
     speed: 500,
     slidesToShow: 3,
     slidesToScroll: 1,
@@ -80,10 +83,7 @@ const Home: React.FC = () => {
     ],
   };
 
-  const testimonialSettings = { ...sliderSettings, slidesToShow: 2 };
-
-  const featuredDestinations = destinations.slice(0, 3);
-  const featuredReviews = reviews?.slice(0, 4) ?? [];
+  const testimonialSettings = { ...sliderSettings, slidesToShow: 2, infinite: featuredReviews.length > 1 };
 
   if (!hero) {
     return (

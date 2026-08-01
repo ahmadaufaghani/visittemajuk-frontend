@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listFooterSocials } from '../services/footerSocialsApi';
 import type { FooterSocial } from '../types/footerSocial';
 
@@ -9,16 +9,16 @@ interface UseFooterSocialsResult {
   reload: () => Promise<void>;
 }
 
-export function useFooterSocials(): UseFooterSocialsResult {
+export function useFooterSocials(token?: string): UseFooterSocialsResult {
   const [socials, setSocials] = useState<FooterSocial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = async (): Promise<void> => {
+  const reload = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await listFooterSocials();
+      const result = await listFooterSocials(token);
       setSocials(result.socials);
     } catch {
       setError('Daftar media sosial belum dapat dimuat.');
@@ -26,11 +26,11 @@ export function useFooterSocials(): UseFooterSocialsResult {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     void reload();
-  }, []);
+  }, [reload]);
 
   return { socials, isLoading, error, reload };
 }
