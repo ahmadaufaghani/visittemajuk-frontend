@@ -1,7 +1,7 @@
 import React, { useState, Fragment, useEffect, useRef } from 'react';
 import { Edit, Trash2, Plus, ChevronDown, ChevronUp, MoveUpRight, Upload } from 'lucide-react';
 import { useAuth } from '../../../contexts/authContextValue';
-import { PuffLoader } from "react-spinners";
+import { ClipLoader, PuffLoader } from "react-spinners";
 import { createAdditionalCulinary, deleteAdditionalCulinary, getAdditionalCulinaries, updateAdditionalCulinary } from '../../../services/culinariesApi';
 import toast from 'react-hot-toast';
 import { AdditionalCulinary } from '../../../types/culinary';
@@ -9,6 +9,8 @@ import { useOverlay } from '../../../contexts/OverlayContext';
 import {Link} from 'react-router-dom';
 import { storageUrl } from '../../../utils/storageUrl';
 import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
+import { showConfirm } from '../../../utils/confirm';
+import { ApiError } from '../../../lib/api';
 
 const AdditionalCulinaryList: React.FC = () => {
 
@@ -22,8 +24,25 @@ const AdditionalCulinaryList: React.FC = () => {
   const imageFile = useRef<HTMLInputElement | null>(null);
   const [preview, setPreview] = useState<string>('');
   const [selectedRow, setSelectedRow] = useState<number>(0);
+  const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
+  const [error, setError] = useState<Record<string, string[]>>();
   const overlay = useOverlay();
   const handleApiError = useApiErrorHandler();
+
+  const handleReset = () => {
+    if(id) {
+      setId(0);
+    }
+    setTitle('');
+    setDescription('');
+    setPreview('');
+    setError({});
+    if (imageFile.current) {
+      imageFile.current.value = "";
+      imageFile.current.type = "text";
+      imageFile.current.type = "file";
+    }
+  }
   
   const getAdditionalCulinariesData = () => {
     setIsLoading(true);
@@ -32,63 +51,72 @@ const AdditionalCulinaryList: React.FC = () => {
     .finally(() => setIsLoading(false));
   }
 
-  const addAdditionalCulinary = async () => {
+  const addAdditionalCulinary = async (): Promise<boolean> => {
     const formBody = new FormData();
     formBody.append('title', title);
     formBody.append('description', description);
     formBody.append('image', image!);
-    setIsLoading(true);
+    setIsLoadingForm(true);
     try {
       await createAdditionalCulinary(formBody, user.token as string);
       toast.success("Kuliner khas berhasil ditambahkan.");
+      setIsLoadingForm(false);
       getAdditionalCulinariesData();
-      setTitle('');
-      setDescription('');
-      setPreview('');
-      if (imageFile.current) {
-        imageFile.current.value = "";
-        imageFile.current.type = "text";
-        imageFile.current.type = "file";
-      }
+      handleReset();
+      return true;
     } catch (err) {
-      setIsLoading(false);
-      handleApiError(err);
+      if(err instanceof ApiError) setError(err.errors);
+      setIsLoadingForm(false);
+      toast.error("Kuliner khas gagal ditambahkan.")
+      return false;
     }
   }
 
-  const updateAdditionalCulinaryData = async (id: number) => {
+  const updateAdditionalCulinaryData = async (id: number): Promise<boolean> => {
     const formBody = new FormData();
     formBody.append('title', title);
     formBody.append('description', description);
     formBody.append('image', image!);
-    setIsLoading(true);
+    setIsLoadingForm(true);
     try {
       await updateAdditionalCulinary(id, formBody, user.token as string);
+      setIsLoadingForm(false);
       toast.success("Kuliner khas berhasil diperbarui.");
       getAdditionalCulinariesData();
-      setId(0);
-      setTitle('');
-      setDescription('');
-      setPreview('');
-      if (imageFile.current) {
-        imageFile.current.value = "";
-        imageFile.current.type = "text";
-        imageFile.current.type = "file";
-      }
+      handleReset();
+      return true;
     } catch (err) {
-      setIsLoading(false);
-      handleApiError(err);
+      if(err instanceof ApiError) setError(err.errors);
+      setIsLoadingForm(false);
+      toast.error("Kuliner khas gagal diperbarui.")
+      return false;
     }
   }
 
   const deleteAdditionalCulinaryData = async (id: number) => {
-    try {
-      await deleteAdditionalCulinary(id, user.token as string);
-      toast.success("Kuliner khas berhasil dihapus.");
-      getAdditionalCulinariesData();
-    } catch (err) {
-      handleApiError(err);
-    }
+    showConfirm({
+      title: 'Hapus Kuliner Khas',
+      message: 'Apakah Anda yakin ingin menghapus kuliner khas ini?',
+      onConfirm: async () => {
+        try {
+          setIsLoading(true);
+          await deleteAdditionalCulinary(id, user.token as string);
+          toast.success("Kuliner khas berhasil dihapus.");
+          getAdditionalCulinariesData();
+        } catch (err) {
+          handleApiError(err);
+        }
+      },
+    });
+  }
+
+  const deleteError = (key: string) => {
+    setError(prev => {
+      if(!prev) return;
+
+      const {[key]:_, ...newData} = prev;
+      return newData;
+    });
   }
 
   useEffect(()=>{
@@ -103,17 +131,7 @@ const AdditionalCulinaryList: React.FC = () => {
 
   useEffect(()=> {
     if(!(overlay.statusDialogForm)) {
-      if(id) {
-        setId(0);
-      }
-      setTitle('');
-      setDescription('');
-      setPreview('');
-      if (imageFile.current) {
-        imageFile.current.value = "";
-        imageFile.current.type = "text";
-        imageFile.current.type = "file";
-      }
+      handleReset();
     }
   },[overlay.statusDialogForm])
  
@@ -121,16 +139,16 @@ const AdditionalCulinaryList: React.FC = () => {
     <>
       {/* Form CRUD */}
       <div className={`bg-white rounded-lg p-6 left-[20%] translate-x-[-15%] top-[50%] translate-y-[-50%] sm:left-[50%] sm:translate-x-[-50%] xl:left-[55%] xl:translate-x-[-40%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "fixed" : "hidden"}`}>
-      <form onSubmit={(e) => {
+      <form onSubmit={async (e) => {
         e.preventDefault();
+        let addAddCulinary = false;
+        let updateAddCulinary = false;
         if(id) {
-          setIsLoading(true);
-          updateAdditionalCulinaryData(id);
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
+          updateAddCulinary = await updateAdditionalCulinaryData(id);
         } else {
-          setIsLoading(true);
-          addAdditionalCulinary();
+          addAddCulinary = await addAdditionalCulinary();
+        }
+        if(addAddCulinary || updateAddCulinary) {
           overlay.changeStatusDialogForm(false);
           overlay.changeStatus(false);
         }
@@ -147,11 +165,15 @@ const AdditionalCulinaryList: React.FC = () => {
                 type="text"
                 name="title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                onChange={(e) => {
+                  deleteError("title");
+                  setTitle(e.target.value);
+                }}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${error && error["title"] && "border-red-600"}`}
                 required
                 placeholder="Masukkan nama kuliner khas"
               />
+              <span className="text-sm text-red-600">{error && error["title"] && `*${error["title"]}`.replace("title", "Kuliner khas")}</span>
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -162,19 +184,31 @@ const AdditionalCulinaryList: React.FC = () => {
                   <img
                     src={preview ? preview : storageUrl(image as string)}
                     alt="Pratinjau gambar utama"
-                    className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
+                    className={`h-32 w-full md:w-56 object-cover rounded border border-gray-200 ${error && error["image"] && "border-red-600"}`}
                   />
                 ) : (
                   <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
                     Belum ada gambar
                   </div>
                 )}
+                <span className="text-sm text-red-600">{error && error["image"] && '*'+error["image"].map(val => {
+                  let message = '';
+                  if(val.includes('jpg, jpeg, webp') || val.includes('max')) {
+                    message += "Ekstensi gambar tidak sesuai;";
+                  }
+                  if(val.includes('1024 KB') || val.includes('size')) {
+                    message += "Ukuran gambar lebih dari 1 MB;";
+                  }
+                  return message;
+                }).join(" ").trim()}
+                </span>
                 <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors w-fit">
                   <Upload className="h-4 w-4" />
                   <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
                   <input
                     type="file"
                     name="image"
+                    accept="image/jpeg,image/webp"
                     ref={el => {
                       if(!el) {
                         return;
@@ -190,6 +224,7 @@ const AdditionalCulinaryList: React.FC = () => {
                       }
                     }}
                     onChange={(e) => {
+                        deleteError("image");
                         const target = e.target as HTMLInputElement & {
                           files: FileList;
                         }
@@ -215,33 +250,25 @@ const AdditionalCulinaryList: React.FC = () => {
               <textarea
                   name="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    deleteError("description");
+                    setDescription(e.target.value);
+                  }}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${error && error["description"] && "border-red-600"}`}
                   required
                   placeholder="Masukkan deskripsi kuliner khas"
                 />
+                 <span className="text-sm text-red-600">{error && error["description"] && `*${error["description"]}`.replace("description", "Deskripsi")}</span>
             </div>
             <div className="flex justify-end gap-2">
               <button
               type="button"
+              disabled={isLoadingForm}
               onClick={() => {
                 overlay.changeStatusDialogForm(false);
                 overlay.changeStatus(false);
-
-                if(id) {
-                  setId(0);
-                }
-
-                setTitle('');
-                setDescription('');
-                setPreview('');
-
-                if (imageFile.current) {
-                  imageFile.current.value = "";
-                  imageFile.current.type = "text";
-                  imageFile.current.type = "file";
-                }
+                handleReset();
               }}
               className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               >
@@ -249,9 +276,24 @@ const AdditionalCulinaryList: React.FC = () => {
               </button>
               <button
               type="submit"
+              disabled={isLoadingForm}
               className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               >
-                {id ? "Edit Kuliner Khas" : "Tambah Kuliner Khas"}
+                {isLoadingForm ?
+                  <>
+                    <ClipLoader
+                      color={"#ffff"}
+                      loading={true}
+                      size={20}
+                      className="mr-2"
+                    />
+                    <span>Mengunggah...</span>
+                  </>
+                  :
+                  <>
+                    {id ? "Edit Kuliner Khas": "Tambah Kuliner Khas"}
+                  </>
+                  }
               </button>
             </div>
           </div>
@@ -273,6 +315,7 @@ const AdditionalCulinaryList: React.FC = () => {
             <button
               className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               onClick={()=>{
+                setError({});
                 overlay.changeStatus(true);
                 overlay.changeStatusDialogForm(true);
               }}
@@ -292,7 +335,10 @@ const AdditionalCulinaryList: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Kuliner
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Deskripsi
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Aksi
                   </th>
                 </tr>
@@ -308,15 +354,13 @@ const AdditionalCulinaryList: React.FC = () => {
                           src={storageUrl(item.image)}
                           alt={item.title}
                         />
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {item.title}
-                          </div>
-                          <div className="text-sm text-gray-500 hidden sm:table-cell">
-                            {item.description}
-                          </div>
+                        <div className="ml-4 text-sm font-medium text-gray-900">
+                          {item.title}
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 hidden sm:table-cell">
+                      {item.description}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
@@ -333,6 +377,7 @@ const AdditionalCulinaryList: React.FC = () => {
                       <div className="justify-end space-x-2 hidden sm:flex">
                         <button
                           onClick={()=>{
+                            setError({});
                             setId(item.id);
                             setTitle(item.title);
                             setDescription(item.description);
@@ -347,7 +392,6 @@ const AdditionalCulinaryList: React.FC = () => {
                         </button>
                         <button
                           onClick={() => {
-                            setIsLoading(true);
                             deleteAdditionalCulinaryData(item.id);
                           }}
                           className="text-red-600 hover:text-red-900 p-1"
@@ -374,6 +418,7 @@ const AdditionalCulinaryList: React.FC = () => {
                               <div className="justify-start space-x-2">
                                 <button
                                   onClick={()=>{
+                                    setError({});
                                     setId(item.id);
                                     setTitle(item.title);
                                     setDescription(item.description);
@@ -388,7 +433,6 @@ const AdditionalCulinaryList: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    setIsLoading(true);
                                     deleteAdditionalCulinaryData(item.id);
                                   }}
                                   className="text-red-600 hover:text-red-900 p-1"

@@ -59,6 +59,7 @@ const CulinaryForm: React.FC = () => {
   const [errorSpecialtyUpdate, setErrorSpecialtyUpdate] = useState<{id: number, errors: Record<string, string[]>}[]>([]);
 
   const [errorGalleryCreate, setErrorGalleryCreate] = useState<{index: number, errors: Record<string, string[]>}[]>([]);
+  
   const showCulinary = async (id: number) => {
     try {
       setIsLoading(true);
@@ -117,17 +118,22 @@ const CulinaryForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        specialties.map((val, index) => {
-          if(!lastSpecialtySuccess.includes(val.index)) {
+        specialties
+        .filter(val => !lastSpecialtySuccess.includes(val.index))
+        .map(async (val) => {
+          const order = specialtiesUpdate.length > 0 ? specialtiesUpdate[specialtiesUpdate.length - 1]["order"] + val.index : val.index;
+          try {
+            await createSpeciality({
+              menu: val.menu.trim(), 
+              order: order, 
+              culinary_id: id},
+            user.token as string);
             setLastSpecialtySuccess(prev => [...prev, val.index]);
-            return createSpeciality({menu: val.menu.trim(), order: idCulinary && specialtiesUpdate.length > 0 ? specialtiesUpdate[specialtiesUpdate.length-1] && specialtiesUpdate[specialtiesUpdate.length-1].order + (index + 1) : index + 1, culinary_id: id}, user.token as string)
-            .catch((err) => {
-              setLastSpecialtySuccess(prev => prev.filter(item => item !== val.index));
-              if(err instanceof ApiError) {
-                  setErrorSpecialtyCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
-                  throw new Error(`Menu spesial gagal ditambahkan. Error: ${err.message}`);
-                }
-              });
+          } catch (err) {
+            if(err instanceof ApiError) {
+              setErrorSpecialtyCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
+              throw new Error(`Menu spesial gagal ditambahkan. Error: ${err.message}`);
+            }
           }
         })
       );
@@ -148,21 +154,24 @@ const CulinaryForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        galleries.map((val) => {
-          if(!lastGallerySuccess.includes(val.index)) {
-            setLastGallerySuccess(prev => [...prev, val.index]);
+        galleries.filter(val => !lastGallerySuccess.includes(val.index))
+        .map(async (val) => {
+          try {
+            const order = galleriesUpdate.length > 0 ? galleriesUpdate[galleriesUpdate.length-1]["order"] + val.index : val.index;
+  
             const formGallery = new FormData();
             formGallery.append("image",val.file);
-            formGallery.append("order", String(galleriesUpdate.length > 0 ? galleriesUpdate[galleriesUpdate.length-1]["order"] + val.index : val.index));
+            formGallery.append("order", String(order));
             formGallery.append("culinary_id", String(id));
-            return createGallery(formGallery, user.token as string)
-            .catch((err) => {
-              setLastGallerySuccess(prev => prev.filter(item => item !== val.index));
-              if(err instanceof ApiError) {
-                setErrorGalleryCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
-                throw new Error(`Galeri gagal ditambahkan. Error: ${err.message}`);
-              }
-            });
+  
+            await createGallery(formGallery, user.token as string);
+  
+            setLastGallerySuccess(prev => [...prev, val.index]);
+          } catch (err) {
+            if(err instanceof ApiError) {
+              setErrorGalleryCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
+              throw new Error(`Galeri gagal ditambahkan. Error: ${err.message}`);
+            }
           }
         })
       );
@@ -212,23 +221,21 @@ const CulinaryForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        specialtiesUpdatedTemp.map((val) => {
+        specialtiesUpdatedTemp.filter(val => !specialtiesDeletedTemp.includes(specialtiesUpdate[val].id))
+        .map(async (val) => {
           const specialty = specialtiesUpdate[val];
-          
-          if(!specialtiesDeletedTemp.find(val => val === specialty.id)) {
-            setSpecialitiesUpdatedTemp(prev => prev.filter(item => item !== val));
-            return updateSpeciality(specialty.id, {
+          try {
+            await updateSpeciality(specialty.id, {
               menu: specialty.menu.trim(),
               order: specialty.order,
               culinary_id: id
-            }, user.token as string)
-            .catch((err) => {
-              setSpecialitiesUpdatedTemp(prev => [...prev, val]);
-              if(err instanceof ApiError) {
-                setErrorSpecialtyUpdate(prev => [...prev, {id: specialty.id, errors: {...err.errors}}]);
-                throw new Error(`Menu spesial gagal diperbarui. Error: ${err.message}`);
-              }
-            });
+            }, user.token as string);
+            setSpecialitiesUpdatedTemp(prev => prev.filter(val => val !== val));
+          } catch (err) {
+            if(err instanceof ApiError) {
+              setErrorSpecialtyUpdate(prev => [...prev, {id: specialty.id, errors: {...err.errors}}]);
+              throw new Error(`Menu spesial gagal diperbarui. Error: ${err.message}`);
+            }
           }
         })
       );
@@ -239,6 +246,7 @@ const CulinaryForm: React.FC = () => {
         if(err instanceof Error) {
           toast.error(err.message);
         }
+        setIsLoadingForm(false);
         return false;
     }
   }

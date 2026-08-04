@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { storageUrl } from '../../../utils/storageUrl';
 import { useOverlay } from '../../../contexts/OverlayContext';
 import { ClipLoader } from 'react-spinners';
+import { ApiError } from '../../../lib/api';
 
 const AccommodationList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +26,7 @@ const AccommodationList: React.FC = () => {
   const [isLoadingBanner, setIsLoadingBanner] = useState<boolean>(false);
   const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
   const { token } = useAuth();
+  const [errorBanner, setErrorBanner] = useState<Record<string, string[]>>();
   const overlay = useOverlay();
   const handleApiError = useApiErrorHandler();
   const {
@@ -74,6 +76,7 @@ const AccommodationList: React.FC = () => {
       fileRef.current.type = "text";
       fileRef.current.type = "file";
     }
+    setErrorBanner({});
   }
 
   const getBannerData = async () => {
@@ -96,7 +99,7 @@ const AccommodationList: React.FC = () => {
     }
   }
 
-  const createBannerData = async () => {
+  const createBannerData = async (): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
@@ -108,13 +111,16 @@ const AccommodationList: React.FC = () => {
       handleReset();
       setIsLoadingForm(false);
       toast.success("Banner berhasil ditambahkan.");
+      return true;
     } catch (err) {
         setIsLoadingForm(false);
-        handleApiError(err);
+        if(err instanceof ApiError) setErrorBanner(err.errors);
+        toast.error("Banner gagal ditambahkan.");
+        return false;
     }
   }
 
-  const updateBannerData = async (id: number) => {
+  const updateBannerData = async (id: number): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
       const formBody = new FormData();
@@ -126,9 +132,12 @@ const AccommodationList: React.FC = () => {
       handleReset();
       setIsLoadingForm(false);
       toast.success("Banner berhasil diperbarui.");
+      return true;
     } catch (err) {
         setIsLoadingForm(false);
-        handleApiError(err);
+        if(err instanceof ApiError) setErrorBanner(err.errors);
+        toast.error("Banner gagal diperbarui.");
+        return false;
     }
   }
 
@@ -160,6 +169,15 @@ const AccommodationList: React.FC = () => {
     });
   };
 
+  const deleteErrorBanner = (key: string) => {
+    setErrorBanner(prev => {
+      if(!prev) return;
+      
+      const {[key]:_, ...newData} = prev;
+      return newData;
+    });
+  }
+
   useEffect(() => {
     return () => {
       URL.revokeObjectURL(preview);
@@ -175,13 +193,18 @@ const AccommodationList: React.FC = () => {
       <div className={`bg-white rounded-lg p-6 left-[20%] translate-x-[-15%] top-[50%] translate-y-[-50%] sm:left-[50%] sm:translate-x-[-50%] xl:left-[55%] xl:translate-x-[-40%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "fixed" : "hidden"}`}>
       <form onSubmit={async (e) => {
         e.preventDefault();
+        let addBanner = false;
+        let updateBanner = false;
         if(!menu) {
-          await createBannerData();
+          addBanner = await createBannerData();
         } else {
-          await updateBannerData(id);
+          updateBanner = await updateBannerData(id);
         }
-        overlay.changeStatusDialogForm(false);
-        overlay.changeStatus(false);
+
+        if(addBanner || updateBanner) {
+          overlay.changeStatusDialogForm(false);
+          overlay.changeStatus(false);
+        }
       }}>
         <div className="flex flex-col gap-4">
             <div>
@@ -199,11 +222,15 @@ const AccommodationList: React.FC = () => {
                     type="text"
                     name="title"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                    onChange={(e) => {
+                      deleteErrorBanner("title");
+                      setTitle(e.target.value);
+                    }}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${errorBanner && errorBanner["title"] && "border-red-600"}`}
                     required
                     placeholder="Masukkan judul banner"
                   />
+                  <span className="text-sm text-red-600">{errorBanner && errorBanner["title"] && `*${errorBanner["title"]}`.replace("title","Judul")}</span>
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -214,13 +241,23 @@ const AccommodationList: React.FC = () => {
                       <img
                         src={preview ? preview : storageUrl(image as string)}
                         alt="Pratinjau gambar utama"
-                        className="h-32 w-full md:w-56 object-cover rounded border border-gray-200"
+                        className={`h-32 w-full md:w-56 object-cover rounded border border-gray-200 ${errorBanner && errorBanner["image"] && "border-red-600"}`}
                       />
                     ) : (
                       <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
                         Belum ada gambar
                       </div>
                     )}
+                    <span className="text-sm text-red-600">{errorBanner && errorBanner["image"] && '*'+errorBanner["image"].map(val => {
+                        let message = '';
+                        if(val.includes('jpg, jpeg, webp') || val.includes('max')) {
+                          message += "Ekstensi gambar tidak sesuai;";
+                        }
+                        if(val.includes('1024 KB') || val.includes('size')) {
+                          message += "Ukuran gambar lebih dari 1 MB;";
+                        }
+                        return message;
+                    }).join(" ").trim()}</span>
                     <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md cursor-pointer transition-colors w-fit">
                       <Upload className="h-4 w-4" />
                       <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
@@ -242,6 +279,7 @@ const AccommodationList: React.FC = () => {
                           }
                         }}
                         onChange={(e) => {
+                            deleteErrorBanner("image");
                             const target = e.target as HTMLInputElement & {
                               files: FileList;
                             }
@@ -267,12 +305,16 @@ const AccommodationList: React.FC = () => {
                   <textarea
                       name="description"
                       value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                      onChange={(e) => {
+                        deleteErrorBanner("description");
+                        setDescription(e.target.value);
+                      }}
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${errorBanner && errorBanner["description"] && "border-red-600"}`}
                       required
                       placeholder="Masukkan deskripsi banner"
                     />
+                   <span className="text-sm text-red-600">{errorBanner && errorBanner["description"] && `*${errorBanner["description"]}`.replace("description","Deskripsi")}</span>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
@@ -333,6 +375,7 @@ const AccommodationList: React.FC = () => {
             onClick={async ()=> {
               overlay.changeStatus(true);
               overlay.changeStatusDialogForm(true);
+              setErrorBanner({});
               await getBannerData();
             }}
             className="bg-blue-800 hover:bg-blue-950 text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"

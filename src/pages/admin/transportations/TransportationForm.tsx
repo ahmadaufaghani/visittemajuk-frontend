@@ -109,29 +109,27 @@ const TransportationForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        steps.map((val, index) => {
-          if(!lastStepSuccess.includes(val.index)) {
-            setLastStepSuccess(prev => [...prev, val.index]);
-            return createSteps({
+        steps.filter(val => !lastStepSuccess.includes(val.index))
+        .map(async (val) => {
+          try {
+            const order = stepsUpdate.length > 0 ? stepsUpdate[stepsUpdate.length-1].order + val.index : val.index;
+            await createSteps({
               description: val.step.description.trim(), 
               duration: val.step.duration.trim(), 
               cost: val.step.cost.trim(), 
               vehicle: val.step.vehicle.trim(),
-              order: idTransportation && stepsUpdate.length > 0 ? stepsUpdate[stepsUpdate.length-1] && stepsUpdate[stepsUpdate.length-1].order + (index + 1) : index + 1, 
+              order: order, 
               transportation_id: id
             }, 
-            user.token as string)
-            .catch((err)=>{
-              setLastStepSuccess(prev => prev.filter(item => item !== val.index));
-              if(err instanceof ApiError) {
-                  setErrorStepsCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
-                  throw new Error(`Langkah gagal ditambahkan. Error: ${err.message}`);
-                }
-            });
-          }
-      }
-
-      )
+            user.token as string);
+            setLastStepSuccess(prev => [...prev, val.index]);
+          } catch (err) {
+            if(err instanceof ApiError) {
+              setErrorStepsCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
+              throw new Error(`Langkah gagal ditambahkan. Error: ${err.message}`);
+            }
+          } 
+        })
       );
       setStepState(true);
       setIsLoadingForm(false);
@@ -149,25 +147,25 @@ const TransportationForm: React.FC = () => {
   const addTipsData = async (id: number): Promise<boolean> => {
     try {
       setIsLoadingForm(true);
-      await Promise.all(tips.map((val, index) => {
-        if(!lastTipSuccess.includes(val.index)) {
-          setLastTipSuccess(prev => [...prev, val.index]);
-          return createTips({
-            tip: val.tip.trim(), 
-            order: idTransportation && tipsUpdate.length > 0 ? tipsUpdate[tipsUpdate.length-1] && tipsUpdate[tipsUpdate.length-1].order + (index + 1) : index + 1, 
-            transportation_id: id
-          }, user.token as string)
-          .catch((err) => {
-            setLastTipSuccess(prev => prev.filter(item => item !== val.index));
+      await Promise.all(
+        tips.filter(val => !lastTipSuccess.includes(val.index))
+        .map(async (val) => {
+          try {
+            const order = tipsUpdate.length > 0 ? tipsUpdate[tipsUpdate.length-1].order + val.index : val.index;
+            await createTips({
+              tip: val.tip.trim(), 
+              order: order, 
+              transportation_id: id
+            }, user.token as string);            
+            setLastTipSuccess(prev => [...prev, val.index]);
+          } catch (err) {
             if(err instanceof ApiError) {
               setErrorTipsCreate(prev => [...prev, {index: val.index, errors: {...err.errors}}]);
               throw new Error(`Tips gagal ditambahkan. Error: ${err.message}`);
             }
-          });
-        }
-      }
-        
-      ));
+          }
+       })
+      );
       setTipState(true);
       setIsLoadingForm(false);
       tips.length > 0 && toast.success("Tips berhasil ditambahkan.");
@@ -209,20 +207,26 @@ const TransportationForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        stepsUpdatedTemp.map((val) => {
-            const steps = stepsUpdate[val];
-
-            if(!stepsDeletedTemp.find(val => val === steps.id)) {
-              setStepsUpdatedTemp(prev => prev.filter(item => item !== val));
-              return updateTransportationSteps(steps.id, {description:steps.description.trim(), duration: steps.duration.trim(), order:steps.order, cost: steps.cost.trim(), vehicle: steps.vehicle.trim(), transportation_id: steps.transportation_id}, user.token as string)
-              .catch((err) => {
-                setStepsUpdatedTemp(prev => [...prev, val]);
-                if(err instanceof ApiError) {
-                  setErrorStepsUpdate(prev => [...prev, {id: steps.id, errors: {...err.errors}}]);
-                  throw new Error(`Langkah gagal diperbarui. Error: ${err.message}`);
-                }
-              });
-            }
+        stepsUpdatedTemp.filter(val => !stepsDeletedTemp.includes(stepsUpdate[val]["id"]))
+        .map(async (val) => {
+          const steps = stepsUpdate[val];
+          try {
+            await updateTransportationSteps(steps.id, 
+            {
+              description:steps.description.trim(), 
+              duration: steps.duration.trim(), 
+              order:steps.order, 
+              cost: steps.cost.trim(), 
+              vehicle: steps.vehicle.trim(), 
+              transportation_id: steps.transportation_id
+            }, user.token as string);
+            setStepsUpdatedTemp(prev => prev.filter(item => item !== val));
+          } catch (err) {
+            if(err instanceof ApiError) {
+              setErrorStepsUpdate(prev => [...prev, {id: steps.id, errors: {...err.errors}}]);
+              throw new Error(`Langkah gagal diperbarui. Error: ${err.message}`);
+            } 
+          }
         })
       );
       setIsLoadingForm(false);
@@ -230,10 +234,10 @@ const TransportationForm: React.FC = () => {
       return true;
     } catch (err) {
       setIsLoadingForm(false);
-       if(err instanceof Error) {
-          toast.error(err.message);
-        }
-       return false;
+      if(err instanceof Error) {
+        toast.error(err.message);
+      }
+      return false;
     }
   }
   
@@ -241,20 +245,23 @@ const TransportationForm: React.FC = () => {
     try {
       setIsLoadingForm(true);
       await Promise.all(
-        tipsUpdatedTemp.map((val) => {
-            const tips = tipsUpdate[val];
-            
-            if(!tipsDeletedTemp.find(val => val === tips.id)) {
-              setTipsUpdatedTemp(prev => prev.filter(item => item !== val));
-              return updateTransportationTips(tips.id, {tip: tips.tip.trim(), order: tips.order, transportation_id: tips.transportation_id}, user.token as string)
-              .catch((err) => {
-                setTipsUpdatedTemp(prev => [...prev, val]);
-                if(err instanceof ApiError) {
-                  setErrorTipsUpdate(prev => [...prev, {id:tips.id, errors: {...err.errors}}]);
-                  throw new Error(`Tips gagal diperbarui. Error: ${err.message}`);
-                }
-              });
-            }
+        tipsUpdatedTemp.filter(val => !tipsDeletedTemp.includes(tipsUpdate[val]["id"]))
+        .map(async (val) => {
+          const tips = tipsUpdate[val];
+          try {
+            await updateTransportationTips(tips.id, 
+            {
+              tip: tips.tip.trim(), 
+              order: tips.order, 
+              transportation_id: tips.transportation_id
+            }, user.token as string);
+            setTipsUpdatedTemp(prev => prev.filter(item => item !== val));
+          } catch (err) {
+            if(err instanceof ApiError) {
+              setErrorTipsUpdate(prev => [...prev, {id:tips.id, errors: {...err.errors}}]);
+              throw new Error(`Tips gagal diperbarui. Error: ${err.message}`);
+            }   
+          }
         })
       );
       setIsLoadingForm(false);
@@ -318,14 +325,16 @@ const TransportationForm: React.FC = () => {
         return;
       } 
   
-      setErrorStepsCreate(prev => {
-        const index = prev.findIndex(val => val.index === id);
-  
-        const updatedError = prev[index];
-        const {[key]:_, ...newError} = updatedError.errors;
-  
-        return prev.map(val => val.index === id ? {...val, errors:newError} : val);
-      });
+      if(errorStepsCreate.find(val => val.index === id)) {
+        setErrorStepsCreate(prev => {
+          const index = prev.findIndex(val => val.index === id);
+    
+          const updatedError = prev[index];
+          const {[key]:_, ...newError} = updatedError.errors;
+    
+          return prev.map(val => val.index === id ? {...val, errors:newError} : val);
+        });
+      }
     }
   }
 
@@ -335,17 +344,21 @@ const TransportationForm: React.FC = () => {
         errorStepsUpdate.find(val => val.id === id) && setErrorStepsUpdate(prev => prev.filter(val => val.id !== id));
         return;
       } 
-  
-      setErrorStepsUpdate(prev => {
-        const index = prev.findIndex(val => val.id === id);
-  
-        const updatedError = prev[index];
-        const {[key]:_, ...newError} = updatedError.errors;
-  
-        return prev.map(val => val.id === id ? {...val, errors:newError} : val);
-      });
+      
+      if(errorStepsUpdate.find(val => val.id === id)) {
+        setErrorStepsUpdate(prev => {
+          const index = prev.findIndex(val => val.id === id);
+    
+          const updatedError = prev[index];
+          const {[key]:_, ...newError} = updatedError.errors;
+    
+          return prev.map(val => val.id === id ? {...val, errors:newError} : val);
+        });
+      }
     }
   }
+
+  console.log(errorStepsUpdate);
 
   const deleteErrorTipsCreate = (id: number) => {
     errorTipsCreate.find(val => val.index === id) && setErrorTipsCreate(prev => prev.filter(val => val.index !== id));
@@ -474,7 +487,7 @@ const TransportationForm: React.FC = () => {
         URL.revokeObjectURL(preview);
       }
     }
-  },[preview]);
+  }, [preview]);
 
   return (
     <div className="space-y-6">
