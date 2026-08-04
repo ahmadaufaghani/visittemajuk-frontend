@@ -1,7 +1,7 @@
 import React, { useState, Fragment, useEffect} from 'react';
 import { Edit, Trash2, Plus, X, ChevronDown, ChevronUp, Search, MoveUpRight } from 'lucide-react';
 import { useAuth } from '../../../contexts/authContextValue';
-import { PuffLoader } from "react-spinners";
+import { ClipLoader, PuffLoader } from "react-spinners";
 import { createAdditionalInformation, deleteAdditionalInformation, getAdditionalInformation, updateAdditionalInformation } from '../../../services/transportationsApi';
 import toast from 'react-hot-toast';
 import { useOverlay } from '../../../contexts/OverlayContext';
@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { AdditionalInformation, AdditionalInformationPayload } from '../../../types/transportation';
 import { useApiErrorHandler } from '../../../hooks/useApiErrorHandler';
 import { ApiError } from '../../../lib/api';
+import { showConfirm } from '../../../utils/confirm';
 
 const AdditionalInformationList: React.FC = () => {
   const [additionalInformation, setAdditionalInformation] = useState<AdditionalInformation[]>([]);
@@ -17,9 +18,11 @@ const AdditionalInformationList: React.FC = () => {
   const [type, setType] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingForm, setIsLoadingForm] = useState<boolean>(false);
   const user = useAuth();
   const [list, setList] = useState<string[]>([]);
   const [selectedRow, setSelectedRow] = useState<number>(0);
+  const [error, setError] = useState<Record<string, string[]>>();
   const overlay = useOverlay();
   const handleApiError = useApiErrorHandler();
 
@@ -42,6 +45,7 @@ const AdditionalInformationList: React.FC = () => {
     setType('');
     setDescription('');
     setList([]);
+    setError({});
   }
   
   const getAdditionalInformationData = () => {
@@ -51,58 +55,73 @@ const AdditionalInformationList: React.FC = () => {
     .finally(() => setIsLoading(false));
   }
 
-  const addAdditionalInformation = async () => {
-    const formattedList = list.join("\n");
+  const addAdditionalInformation = async (): Promise<boolean> => {
+    const formattedList = list.filter(val => val !== " ").join("\n");
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
       type : type,
       description: type === "paragraph" ? description : formattedList
     } 
-    setIsLoading(true);
+    setIsLoadingForm(true);
     try {
       await createAdditionalInformation(addInfoBody, user.token as string);
       toast.success("Informasi tambahan berhasil ditambahkan.");
       getAdditionalInformationData();
       handleResetForm();
-      overlay.changeStatus(false);
-      overlay.changeStatusDialogForm(false);
+      setIsLoadingForm(false);
+      return true;
     }catch (err) {
-      setIsLoading(false);
+      setIsLoadingForm(false);
       if(err instanceof ApiError) {
-        handleApiError(err);
+        setError(err.errors);
       }
+      toast.error("Informasi tambahan gagal ditambahkan.")
+      return false;
     };
   }
 
-  const updateAdditionalInformationData = async (id: number) => {
-    const formattedList = list.join("\n");
+  const updateAdditionalInformationData = async (id: number): Promise<boolean> => {
+    const formattedList = list.filter(val => val !== " ").join("\n");
     const addInfoBody: AdditionalInformationPayload = {
       title : title,
       type : type,
       description: type === "paragraph" ? description : formattedList
     }
-    setIsLoading(true);
+    setIsLoadingForm(true);
     try {
       await updateAdditionalInformation(id, addInfoBody, user.token as string);
       toast.success("Informasi tambahan berhasil diperbarui.");
       getAdditionalInformationData();
       handleResetForm();
+      setIsLoadingForm(false);
+      return true;
     } catch(err) {
-      setIsLoading(false);
-      handleApiError(err);
+      setIsLoadingForm(false);
+      if(err instanceof ApiError) {
+        setError(err.errors);
+      }
+      toast.error("Informasi tambahan gagal diperbarui.");
+      return false;
     };
   }
 
   const deleteAdditionalInformationData = async (id: number) => {
-      setIsLoading(true);
-      try {
-        await deleteAdditionalInformation(id, user.token as string);
-        toast.success("Informasi tambahan berhasil dihapus.");
-        getAdditionalInformationData();
-      } catch (err) {
-        setIsLoading(false);
-        handleApiError(err);
+    showConfirm({
+      title: 'Hapus Kuliner Khas',
+      message: 'Apakah Anda yakin ingin menghapus kuliner khas ini?',
+      onConfirm: async () => {
+        try {
+            setIsLoading(true);
+            await deleteAdditionalInformation(id, user.token as string);
+            toast.success("Informasi tambahan berhasil dihapus.");
+            getAdditionalInformationData();
+          } catch (err) {
+            setIsLoading(false);
+            handleApiError(err);
+          }
+        }
       }
+    );
   }
 
   const handleAddArray = () => {
@@ -117,34 +136,44 @@ const AdditionalInformationList: React.FC = () => {
     setList(list.filter((_, i) => i !== index));
   }
 
+  const deleteError = (key: string) => {
+    setError(prev => {
+      if(!prev) return;
+
+      const {[key]:_, ...newData} = prev;
+      return newData;
+    });
+  }
+
   useEffect(()=> {
     if(!(overlay.statusDialogForm)) {
-     handleResetForm();
+      handleResetForm();
     }
-    },[overlay.statusDialogForm]) // eslint-disable-line react-hooks/exhaustive-deps
+  },[overlay.statusDialogForm])
 
   useEffect(()=>{
     getAdditionalInformationData();
   },[])
 
-
   return (
     <>
       {/* Form CRUD */}
       <div className={`bg-white rounded-lg p-6 w-fit h-fit sm:w-[400px] inset-0 m-auto xl:left-[15%] z-10 shadow-lg ${overlay.statusDialogForm && overlay.status ? "fixed" : "hidden"}`}>
-      <form onSubmit={(e) => {
+      <form onSubmit={async (e) => {
         e.preventDefault();
+        let addInfo = false;
+        let updateInfo = false;
         if(id) {
-          setIsLoading(true);
-          updateAdditionalInformationData(id);
-          overlay.changeStatusDialogForm(false);
-          overlay.changeStatus(false);
+          updateInfo = await updateAdditionalInformationData(id); 
         } else {
-          setIsLoading(true);
-          addAdditionalInformation();
+          addInfo = await addAdditionalInformation();
+        }
+
+        if(addInfo || updateInfo) {
           overlay.changeStatusDialogForm(false);
           overlay.changeStatus(false);
         }
+
       }}>
         <div className="flex flex-col gap-4">
             <div>
@@ -158,21 +187,29 @@ const AdditionalInformationList: React.FC = () => {
                 type="text"
                 name="title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full mb-2 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                onChange={(e) => {
+                  deleteError("title");
+                  setTitle(e.target.value);
+                }}
+                className={`w-full mb-2 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${error && error["title"] && "border-red-600"}`}
                 placeholder="Masukkan judul informasi tambahan"
                 required
               />
+              <span className="text-sm text-red-600">{error && error["title"] && `*${error["title"]}`.replace("title", "Judul")}</span>
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipe *
               </label>
-              <select name="type" value={type} className="w-full px-4 py-2 mb-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none" onChange={(e)=>setType(e.target.value)} required>
+              <select name="type" value={type} className={`w-full px-4 py-2 mb-2 rounded-md border-2 border-gray-200 focus:border-primary focus:outline-none ${error && error["type"] && "border-red-600"}`} onChange={(e)=>{
+                  deleteError("type");
+                  setType(e.target.value);
+                }} required>
                 <option value="">- Pilih Tipe Informasi -</option>
                 <option value="paragraph">Paragraf</option>
                 <option value="list">Daftar</option>
               </select>
+              <span className="text-sm text-red-600">{error && error["type"] && `*${error["type"]}`.replace("type", "Tipe")}</span>
             </div>
             { type === "paragraph" || type === ""
                 ?
@@ -183,12 +220,16 @@ const AdditionalInformationList: React.FC = () => {
                 <textarea
                   name="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    deleteError("description");
+                    setDescription(e.target.value);
+                  }}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent ${error && error["description"] && "border-red-600"}`}
                   placeholder="Masukkan deskripsi informasi tambahan"
                   required
                 />
+                <span className="text-sm text-red-600">{error && error["description"] && `*${error["description"]}`.replace("description", "Deskripsi")}</span>
               </div>
                 :
               <div className="flex-1">
@@ -198,13 +239,17 @@ const AdditionalInformationList: React.FC = () => {
                   </label>
                   <button
                     type="button"
-                    onClick={() => handleAddArray()}
+                    onClick={() => {
+                      deleteError("description");
+                      handleAddArray();
+                    }}
                     className="text-primary hover:text-primary-dark flex items-center text-sm pb-2"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     <span>Tambah</span>
                   </button>
                 </div>
+                <span className="text-sm text-red-600">{error && error["description"] && `*${error["description"]}`.replace("description", "Deskripsi")}</span>
                 <div className="h-[200px] [scrollbar-width:none] overflow-y-scroll">
                   {list && list.map((item, index) => {
                     return (
@@ -213,7 +258,16 @@ const AdditionalInformationList: React.FC = () => {
                           key={index+'-list'}
                           type="text"
                           value={item}
-                          onChange={(e) => handleArrayChange(index, e.target.value)}
+                          onKeyDown={(e)=>{
+                            if(e.key === 'Enter') {
+                              e.preventDefault();
+                              (e.target as HTMLInputElement).blur();
+                            }
+                          }}
+                          onChange={(e) => {
+                            deleteError("description");
+                            handleArrayChange(index, e.target.value);
+                          }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
                           placeholder="Masukkan deskripsi dari informasi"
                           required
@@ -236,6 +290,7 @@ const AdditionalInformationList: React.FC = () => {
             <div className="flex justify-end gap-2">
               <button
               type="button"
+              disabled={isLoadingForm}
               onClick={() => {
                 overlay.changeStatusDialogForm(false);
                 overlay.changeStatus(false);
@@ -247,15 +302,24 @@ const AdditionalInformationList: React.FC = () => {
               </button>
               <button
               type="submit"
+              disabled={isLoadingForm}
               className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               >
-              { 
-                id 
-                ? 
-                <span>Perbarui Informasi</span> 
-                :
-                <span>Tambah Informasi</span>
-              }
+              {isLoadingForm ?
+                  <>
+                    <ClipLoader
+                      color={"#ffff"}
+                      loading={true}
+                      size={20}
+                      className="mr-2"
+                    />
+                    <span>Mengunggah...</span>
+                  </>
+                  :
+                  <>
+                    {id ? "Edit Informasi": "Tambah Informasi"}
+                  </>
+                  }
               </button>
             </div>
           </div>
@@ -277,6 +341,7 @@ const AdditionalInformationList: React.FC = () => {
             <button
               className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md flex gap-2 items-center transition-colors duration-200 w-max"
               onClick={()=>{
+                handleResetForm();
                 overlay.changeStatus(true);
                 overlay.changeStatusDialogForm(true);
               }}
@@ -393,6 +458,7 @@ const AdditionalInformationList: React.FC = () => {
                       <div className="justify-end space-x-2 hidden sm:flex">
                         <button
                           onClick={()=>{
+                            setError({});
                             setId(item.id);
                             setTitle(item.title);
                             setType(item.type);
@@ -411,7 +477,6 @@ const AdditionalInformationList: React.FC = () => {
                         </button>
                         <button
                           onClick={() => {
-                            setIsLoading(true);
                             deleteAdditionalInformationData(item.id);
                           }}
                           className="text-red-600 hover:text-red-900 p-1"
@@ -450,6 +515,7 @@ const AdditionalInformationList: React.FC = () => {
                               <div className="flex justify-start space-x-2">
                                 <button
                                   onClick={()=>{
+                                    setError({});
                                     setId(item.id);
                                     setTitle(item.title);
                                     setType(item.type);
@@ -468,7 +534,6 @@ const AdditionalInformationList: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    setIsLoading(true);
                                     deleteAdditionalInformationData(item.id);
                                   }}
                                   className="text-red-600 hover:text-red-900 p-1"
