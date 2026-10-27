@@ -33,6 +33,10 @@ import AdditionalInformationList from './pages/admin/additionalInformation/Addit
 import SiteSettingsPage from './pages/admin/Settings/SiteSettingsPage';
 import PhotographyTipList from './pages/admin/photographyTips/PhotographyTipList';
 import PhotographyTipForm from './pages/admin/photographyTips/PhotographyTipForm';
+import ArticleForm from './pages/admin/articles/ArticleForm';
+import ArticleList from './pages/admin/articles/ArticleList';
+import Articles from './pages/Articles';
+import ArticleDetail from './pages/ArticleDetail';
 
 function App() {
   return (
@@ -57,6 +61,8 @@ function App() {
                   <Route path="/foto" element={<PhotoSpots />} />
                   <Route path="/foto/:id" element={<PhotoSpotDetail />} />
                   <Route path="/ulasan" element={<Reviews />} />
+                  <Route path="/artikel" element={<Articles />} />
+                  <Route path="/artikel/:slug" element={<ArticleDetail />} />
                 </Routes>
               </main>
               <Footer />
@@ -92,7 +98,9 @@ function App() {
             <Route path="transportations/add" element={<TransportationForm />} />
             <Route path="transportations/edit/:id" element={<TransportationForm />} />
             <Route path="settings" element={<SiteSettingsPage />} />
-
+            <Route path="articles" element={<ArticleList />} />
+            <Route path="articles/add" element={<ArticleForm />} />
+            <Route path="articles/edit/:id" element={<ArticleForm />} />
           </Route>
         </Routes>
       </Router>

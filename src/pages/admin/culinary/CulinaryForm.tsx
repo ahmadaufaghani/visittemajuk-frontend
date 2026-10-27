@@ -25,7 +25,7 @@ const CulinaryForm: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [fullDescription, setFullDescription] = useState<string>("");
-  const [image, setImage] = useState<File| string | null>(null);
+  const [image, setImage] = useState<File| string>("");
   const [category, setCategory] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [location, setLocation] = useState<string>("");
@@ -587,7 +587,7 @@ const CulinaryForm: React.FC = () => {
                   className={`h-32 w-full md:w-56 object-cover rounded border border-gray-200 ${errorCulinary && errorCulinary["image"] ? "border-2 border-red-600" : ""}`}
                 />
               ) : (
-                <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
+                <div className={`h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm ${errorCulinary && errorCulinary["image"] ? "border-2 border-red-600" : ""}`}>
                   Belum ada gambar
                 </div>
               )}
@@ -596,7 +596,6 @@ const CulinaryForm: React.FC = () => {
                 <span>{image ? 'Ganti gambar' : 'Unggah gambar'}</span>
                 <input
                   disabled={isLoadingForm}
-                  required={image ? false : true}
                   type="file"
                   accept="image/jpeg,image/webp"
                   className="hidden"
@@ -625,6 +624,9 @@ const CulinaryForm: React.FC = () => {
                   if(val.includes('1024 KB') || val.includes('size')) {
                     message += "Ukuran gambar lebih dari 1 MB;";
                   }
+                  if(val.includes('wajib')) {
+                      message += "Gambar wajib diisi;";
+                    }
                   return message;
               }).join(" ")}`}
               </span>

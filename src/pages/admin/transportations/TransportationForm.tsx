@@ -28,7 +28,7 @@ const TransportationForm: React.FC = () => {
   const [tipState, setTipState] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const [image, setImage] = useState<File| string | null>(null);
+  const [image, setImage] = useState<File| string>("");
   const [estimatedCost, setEstimatedCost] = useState<string>("");
   const [estimatedTime, setEstimatedTime] = useState<string>("");
   const [difficulty, setDifficulty] = useState<string>("");
@@ -612,7 +612,7 @@ const TransportationForm: React.FC = () => {
                     className={`h-32 w-full md:w-56 object-cover rounded border border-gray-200 ${errorTransportation && errorTransportation["image"] ? "border-2 border-red-600" : ""}`}
                   />
                 ) : (
-                  <div className="h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm">
+                  <div className={`h-32 w-full md:w-56 flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 text-sm ${errorTransportation && errorTransportation["image"] ? "border-2 border-red-600" : ""}`}>
                     Belum ada gambar
                   </div>
                 )}
@@ -650,6 +650,9 @@ const TransportationForm: React.FC = () => {
                   }
                   if(val.includes('1024 KB') || val.includes('size')) {
                     message += "Ukuran gambar lebih dari 1 MB;";
+                  }
+                  if(val.includes('wajib')) {
+                    message += "Gambar wajib diisi;";
                   }
                   return message;
               }).join(" ")}`}

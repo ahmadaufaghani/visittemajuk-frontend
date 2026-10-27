@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import Hero from '../components/Hero';
 import SectionTitle from '../components/SectionTitle';
-import { Clock, DollarSign, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Compass, PackageOpen } from 'lucide-react';
+import { Clock, DollarSign, AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Compass, PackageOpen, Text } from 'lucide-react';
 import { useTransportation } from '../hooks/useTransportations';
 import { PuffLoader } from 'react-spinners';
 import { AdditionalInformation } from '../types/transportation';
@@ -121,7 +121,7 @@ const Transportation: React.FC = () => {
             {transportations.map((route) => (
               <div key={route.id} className="border border-gray-200 rounded-lg overflow-hidden">
                 <div
-                  className="flex items-center justify-between p-6 bg-white cursor-pointer"
+                  className="flex items-center justify-between p-6 gap-2 bg-white cursor-pointer"
                   onClick={() => toggleRoute(String(route.id))}
                 >
                   <div className="flex items-center">
@@ -131,20 +131,29 @@ const Transportation: React.FC = () => {
                       className="w-16 h-16 object-cover rounded-md mr-4"
                     />
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-800">{route.title}</h3>
-                      <p className="text-gray-600">{route.description}</p>
+                      <h3 className="text-md md:text-xl font-semibold text-gray-800">{route.title}</h3>
+                      <p className="hidden md:block text-gray-600">{route.description}</p>
                     </div>
                   </div>
-                  <ChevronDown
-                    className={`h-6 w-6 text-gray-500 transition-transform duration-300 ${
-                      openRoute === String(route.id) ? 'transform rotate-180' : ''
-                    }`}
-                  />
+                  <div>
+                    <ChevronDown
+                      className={`h-6 w-6 text-gray-500 transition-transform duration-300 ${
+                        openRoute === String(route.id) ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </div>
                 </div>
 
                 {openRoute === String(route.id) && (
                   <div className="p-6 border-t border-gray-200 bg-gray-50">
                     <div className="flex flex-wrap gap-4 mb-6">
+                      <div className="md:hidden flex flex-col bg-white px-4 py-2 rounded-md shadow-sm">
+                        <div className="flex gap-2 items-center mb-3">
+                          <Text className="h-5 w-5 text-primary mr-2" />
+                          <span className="text-gray-700">Deskripsi:</span>
+                        </div>
+                        <p className=" text-gray-700">{route.description}</p>
+                      </div>
                       <div className="flex items-center bg-white px-4 py-2 rounded-md shadow-sm">
                         <Clock className="h-5 w-5 text-primary mr-2" />
                         <span className="text-gray-700">Waktu: {route.estimated_time}</span>

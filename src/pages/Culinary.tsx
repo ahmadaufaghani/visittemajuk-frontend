@@ -292,7 +292,7 @@ const Culinary: React.FC = () => {
                 <div key={item.id+"div"} className="bg-white p-6 rounded-lg shadow-md flex">
                   <img
                     src={storageUrl(item.image)}
-                    alt="Ikan Bakar Temajuk"
+                    alt={item.title}
                     className="w-32 h-32 object-cover rounded-md mr-4"
                   />
                   <div>

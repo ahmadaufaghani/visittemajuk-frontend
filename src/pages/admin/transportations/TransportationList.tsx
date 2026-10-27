@@ -451,10 +451,10 @@ const TransportationList: React.FC = () => {
                       {item.difficulty}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 hidden md:table-cell">
+                  <td className="px-6 py-4 text-sm text-gray-900 hidden md:table-cell whitespace-nowrap">
                       {item.estimated_time}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 hidden md:table-cell">
+                  <td className="px-6 py-4 text-sm text-gray-900 hidden md:table-cell whitespace-nowrap">
                     {item.estimated_cost}
                   </td>
                   <td className="text-center md:hidden">
