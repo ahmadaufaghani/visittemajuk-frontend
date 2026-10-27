@@ -14,6 +14,7 @@ import {
   X,
   KeyRound,
   Settings,
+  Paperclip,
 } from 'lucide-react';
 import { useOverlay } from '../../contexts/OverlayContext';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -54,6 +55,11 @@ const AdminLayout: React.FC = () => {
       icon: Camera,
       path: '/admin/photo-spots',
       subMenu: [{ title: 'Tips Fotografi', path: '/photography-tips' }],
+    },
+    {
+      title: 'Artikel',
+      icon: Paperclip,
+      path: '/admin/articles'
     },
   ], []);
 
@@ -238,6 +244,7 @@ const AdminLayout: React.FC = () => {
               {location.pathname.includes('/photo-spots/photography-tips') && 'Tips Fotografi'}
               {location.pathname.includes('/photo-spots') && !location.pathname.includes('/photography-tips') && 'Spot Foto'}
               {location.pathname === '/admin/settings' && 'Beranda & Footer'}
+              {location.pathname.includes('/admin/articles') && 'Artikel'}
             </h2>
           </div>
         </header>

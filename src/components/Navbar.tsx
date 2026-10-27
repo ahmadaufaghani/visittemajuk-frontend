@@ -82,7 +82,7 @@ const Navbar: React.FC = () => {
               } transition-colors duration-200`}
             >
               Akomodasi
-            </Link>
+            </Link> 
             <Link
               to="/transportasi"
               aria-current={isActive('/transportasi') ? 'page' : undefined}
@@ -126,6 +126,17 @@ const Navbar: React.FC = () => {
               } transition-colors duration-200`}
             >
               Ulasan
+            </Link>
+            <Link
+              to="/artikel"
+              aria-current={isActive(id ? `/artikel/${id}` : '/artikel') ? 'page' : undefined}
+              className={`${
+                isActive(id ? `/artikel/${id}` : '/artikel') 
+                  ? 'text-primary font-medium border-b-2 border-primary' 
+                  : 'text-gray-700 hover:text-primary'
+              } transition-colors duration-200`}
+            >
+              Artikel
             </Link>
           </div>
 

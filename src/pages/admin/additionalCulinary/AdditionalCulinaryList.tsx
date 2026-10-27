@@ -199,6 +199,9 @@ const AdditionalCulinaryList: React.FC = () => {
                   if(val.includes('1024 KB') || val.includes('size')) {
                     message += "Ukuran gambar lebih dari 1 MB;";
                   }
+                  if(val.includes('wajib')) {
+                    message += "Gambar wajib diisi;";
+                  }
                   return message;
                 }).join(" ").trim()}
                 </span>
@@ -233,7 +236,6 @@ const AdditionalCulinaryList: React.FC = () => {
                         setPreview(objectUrl);
                     }}
                     className="hidden"
-                    required={id === 0}
                   />
                 </label>
                 {!id ? (
